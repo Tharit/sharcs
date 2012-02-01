@@ -23,10 +23,18 @@
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>
-#include <time.h>
+#include <sys/time.h>
 #include <ctype.h>
 #include <pthread.h>
+#include <sys/select.h>
+
+#include <ftdi.h>
+
 #include "av.h"
+
+/* 
+@TODO ! gracefully handle unknown values.. there might be more strange listening modes, or N/A return values, or other receiver models... 
+*/
 
 int fd = -1,pipeFD[2];
 struct termios options;
@@ -42,6 +50,12 @@ pthread_mutex_t mutex_write = PTHREAD_MUTEX_INITIALIZER;
 /*------------------------------------------------------
  * global variables and helper functions
  *------------------------------------------------------*/
+
+enum {
+	AV_MODE_STOPPED,
+	AV_MODE_TTY,
+	AV_MODE_LIBFTDI,
+};
 
 #define MAP_CMD(i,cmd)\
 if(!strncmp(cmd,"PWR",3)) {\
@@ -60,8 +74,6 @@ if(!strncmp(cmd,"PWR",3)) {\
 	i = AV_CMD_DIMMER;\
 } else if(!strncmp(cmd,"PRS",3)) {\
 	i = AV_CMD_PRESET;\
-} else {\
-	return;\
 }
 
 #define MAP_CMD2(i,cmd)\
@@ -80,6 +92,12 @@ switch(i){\
 int state[AV_NUM_COMMANDS],pending[AV_NUM_COMMANDS];
 int numPending;
 void (*callback)(int,int);
+int (*av_main)() = NULL;
+int av_main_tty();
+int av_main_libftdi();
+int av_mode = AV_MODE_STOPPED;
+
+struct ftdi_context ftdic;
 
 void _sendCmd(const char *buf) {
 	int n;
@@ -111,7 +129,7 @@ int reqCmd(int i) {
 	
 	if(pending[i]==0) {
 		
-		sprintf(buf,"!1%sQSTN\r",cmd);
+		sprintf(buf,"!1%sQSTN\n",cmd);
 		_sendCmd(buf);
 
 		pending[i] = time(NULL);
@@ -131,7 +149,7 @@ int sendCmds(int i, const char *v) {
 		return 0;
 	}
 	
-	sprintf(buf,"!1%s%s\r",cmd,v);
+	sprintf(buf,"!1%s%s\n",cmd,v);
 	
 	/* convert value to upper case */
 	for(len=strlen(v),j=5;j<5+len;j++) {
@@ -157,13 +175,13 @@ int sendCmdi(int i, int v) {
 		v = (80-v+2);
 	}
 	
-	sprintf(buf,"!1%s%02X\r",cmd,v);
+	sprintf(buf,"!1%s%02X\n",cmd,v);
 	_sendCmd(buf);
 	
 	return 1;
 }
 
-void recvCmd(const char *buf) {
+int recvCmd(const char *buf) {
 	char cmd[3];
 	int v = 0, i = -1;
 	
@@ -171,13 +189,19 @@ void recvCmd(const char *buf) {
 	
 	MAP_CMD(i,cmd);
 	if(i<0) {
-		return;
+		return -1;
 	}
 	
 	/* value conversion */
 	if(i == AV_CMD_VOLUME) {
 		v = (80-v+2);
 	}
+	
+	if(!av_validvi(i,v)) {
+		printf("av: received unknown value 0x%2x for '%s'\n",v,av_cmd2str(i));
+		return 0;
+	}
+	
 	state[i] = v;
 	
 	if(callback) {
@@ -188,6 +212,8 @@ void recvCmd(const char *buf) {
 		pending[i]=0;
 		numPending--;
 	}
+	
+	return i;
 }
 
 /*------------------------------------------------------------*/
@@ -199,7 +225,8 @@ const char* av_error() {
 	return error;
 }
 
-int av_init(const char *devicename,void (*cb)(int,int)) {
+
+int av_init_internal(void (*cb)(int,int)) {
 	callback = cb;
 	
 	memset(state,-1,sizeof(int)*AV_NUM_COMMANDS);
@@ -207,6 +234,41 @@ int av_init(const char *devicename,void (*cb)(int,int)) {
 	
 	pipe(pipeFD);
 	
+	readCounter = 0;
+	writeCounter = 0;
+	numPending = 0;
+	
+	return 1;
+}
+
+int av_init_libftdi(int vendor,int product,const char *description,const char *serial,unsigned int index,void (*cb)(int,int)) {
+	int ret;
+	
+	if (ftdi_init(&ftdic) < 0) {
+        sprintf(error, "ftdi_init failed\n");
+        return 0;
+    }
+	
+	if ((ret = ftdi_usb_open_desc_index(&ftdic, vendor,product,description,serial,index)) < 0) {
+        sprintf(error, "unable to open ftdi device: %d (%s)\n", ret, ftdi_get_error_string(&ftdic));
+        return 0;
+    }
+
+	ftdi_usb_purge_rx_buffer(&ftdic);
+	ftdi_set_latency_timer(&ftdic,40);
+	ftdi_set_event_char(&ftdic,0x1A,1);
+	
+	// set av_main implementation
+	av_mode = AV_MODE_LIBFTDI;
+	av_main = &av_main_libftdi;
+	
+	// initialize variables
+	av_init_internal(cb);
+	
+	return 1;
+}
+
+int av_init_tty(const char *devicename,void (*cb)(int,int)) {
 	fd = open(devicename,O_RDWR | O_NOCTTY | O_NDELAY);
 	if (fd < 0) {
 		sprintf(error,"%s - %s",devicename,strerror(errno));
@@ -225,9 +287,12 @@ int av_init(const char *devicename,void (*cb)(int,int)) {
 	tcsetattr(fd, TCSANOW, &options);
 	tcflush(fd,TCIOFLUSH);
 	
-	readCounter = 0;
-	writeCounter = 0;
-	numPending = 0;
+	// set av_main implementation
+	av_mode = AV_MODE_TTY;
+	av_main = &av_main_tty;
+	
+	// initialize variables
+	av_init_internal(cb);
 	
 	return 1;
 }
@@ -279,23 +344,132 @@ int av_busy() {
 }
 
 int av_stop() {
-	if(fd>=0) {
-		tcsetattr(fd,TCSANOW,&options);
-		close(fd);
-		close(pipeFD[0]);
-		close(pipeFD[1]);
+	if(av_mode == AV_MODE_STOPPED) {
+		return 0;
 	}
 	
-	fd = -1;
+	if(av_mode == AV_MODE_TTY && fd>=0) {
+		tcsetattr(fd,TCSANOW,&options);
+		close(fd);
+		fd = -1;
+	} else if(av_mode == AV_MODE_LIBFTDI) {
+		int ret = 0;
+		if ((ret = ftdi_usb_close(&ftdic)) < 0) {
+			sprintf(error, "unable to close ftdi device: %d (%s)\n", ret, ftdi_get_error_string(&ftdic));
+			return 0;
+		}
+
+		ftdi_deinit(&ftdic);
+	}
 	
-	return 0;
+	close(pipeFD[0]);
+	close(pipeFD[1]);
+	
+	av_mode = AV_MODE_STOPPED;
+	
+	return 1;
 }
 
-int av_main(struct timeval *tv) {
-	int res,i,s;
+int av_main_libftdi() {
+	static int answer_pending = -1,answer_length;
+	static time_t answer_timer;
+	static char answer_buffer[64];
+	
+	int ret,i,s,c;
 	char buf[64];
 	
+	if(av_mode != AV_MODE_LIBFTDI) {
+		return 0;
+	}
+	
+	/* read data */
+	ret = ftdi_read_data(&ftdic,(unsigned char*)(readBuffer+readCounter),BUFFER_SIZE-readCounter);
+	if(ret > 0) {
+		readCounter += ret;
+
+		/* check for complete messages */
+		for(s=0,i=0;i<readCounter;i++) {
+			if(readBuffer[i] == 0x1A) {
+				memcpy(buf,readBuffer+s,i-s);
+				buf[i-s] = 0x0;
+				if(answer_pending==recvCmd(buf)) {
+					answer_pending = -1;
+				}
+				s = i+1;
+			}
+		}
+		
+		if(s>=readCounter) {
+			readCounter = 0;
+		} else if(s>0) {
+			memmove(readBuffer,readBuffer+s,readCounter-s);
+			readCounter-=s;
+		}
+		return 1;
+	} else if(ret < 0) {
+		sprintf(error,"read() failed");
+		av_stop();
+		
+		return 0;
+	}
+	
+	/* write data */
+	if(writeCounter>0 && answer_pending<0) {
+		// find length of first command
+		for(c=0;c<writeCounter;c++) {
+			if(writeBuffer[c] == '\n') {
+				c++;
+				break;
+			}
+		}
+		
+		pthread_mutex_lock( &mutex_write );
+		
+		if(!strncmp(writeBuffer+5,"QSTN",4)) {
+			MAP_CMD(answer_pending,writeBuffer+2);
+			answer_timer = time(NULL);
+			memcpy(answer_buffer,writeBuffer,c);
+			answer_length = c;
+		}
+		
+		ret = ftdi_write_data(&ftdic,(unsigned char*)writeBuffer,c);
+		if(ret<0) {
+			sprintf(error,"write() failed");
+			av_stop();
+			return 0;
+		} else if(ret==writeCounter) {
+			writeCounter=0;
+		} else if(ret>0){
+			memmove(writeBuffer,writeBuffer+ret,writeCounter-ret);
+			writeCounter-=ret;
+		}
+	
+		pthread_mutex_unlock( &mutex_write );
+		return 1;
+	} 
+	
+	if(answer_pending>=0 && time(NULL)-answer_timer>1) {
+		ftdi_write_data(&ftdic,(unsigned char*)answer_buffer,answer_length);
+		answer_timer = time(NULL);
+		return 1;
+	}
+	
+	return 1;
+}
+
+int av_main_tty() {
+	int res,i,s;
+	char buf[64];
+	struct timeval tv;
+	
 	fd_set readFDs, writeFDs, exceptFDs;
+	
+	if(av_mode != AV_MODE_TTY) {
+		return 0;
+	}
+	
+	tv.tv_sec 	= 30;
+	tv.tv_usec 	= 0;
 	
 	if(fd<=0) {
 		sprintf(error,"not connected");
@@ -313,7 +487,7 @@ int av_main(struct timeval *tv) {
 	FD_SET(fd, &exceptFDs);
 	FD_SET(pipeFD[0],&readFDs);
 	
-	res = select((fd>pipeFD[0]?fd:pipeFD[0])+1, &readFDs, &writeFDs, &exceptFDs, tv);
+	res = select((fd>pipeFD[0]?fd:pipeFD[0])+1, &readFDs, &writeFDs, &exceptFDs, &tv);
 		
 	if(FD_ISSET(pipeFD[0],&readFDs)) {
 		char tmpBuffer[32];
@@ -482,6 +656,15 @@ const char* av_v2str(int cmd,int v) {
 				case AV_MODE_THEATER: res = "theater"; break;
 				case AV_MODE_ENHANCED7: res = "enhanced7"; break;
 				case AV_MODE_MONO: res = "mono"; break;
+				case AV_MODE_PURE_AUDIO: res = "pureaudio"; break;
+				case AV_MODE_PL_MOVIE: res = "plmovie"; break;
+				case AV_MODE_PL_MUSIC: res = "plmusic"; break;
+				case AV_MODE_NEO_CINEMA: res = "neocinema"; break;
+				case AV_MODE_NEO_MUSIC: res = "neomusic"; break;
+				case AV_MODE_NEO_THX_CINEMA: res = "neothxcinema"; break;
+				case AV_MODE_PL_THX_CINEMA: res = "plthxcinema"; break;
+				case AV_MODE_PL_GAME: res = "plgame"; break;
+				case AV_MODE_NEURAL_THX: res = "neuralthx"; break;
 			}
 			break;
 	}
@@ -566,6 +749,24 @@ int av_str2v(int cmd,const char* v) {
 				return AV_MODE_ENHANCED7;
 			} else if(!strcmp(v,"mono")) {
 				return AV_MODE_MONO;
+			} else if(!strcmp(v,"pureaudio")) {
+				return AV_MODE_PURE_AUDIO;
+			} else if(!strcmp(v,"plmovie")) {
+				return AV_MODE_PL_MOVIE;
+			} else if(!strcmp(v,"plmusic")) {
+				return AV_MODE_PL_MUSIC;
+			} else if(!strcmp(v,"neocinema")) {
+				return AV_MODE_NEO_CINEMA;
+			} else if(!strcmp(v,"neomusic")) {
+				return AV_MODE_NEO_MUSIC;
+			} else if(!strcmp(v,"neothxcinema")) {
+				return AV_MODE_NEO_THX_CINEMA;
+			} else if(!strcmp(v,"plthxcinema")) {
+				return AV_MODE_PL_THX_CINEMA;
+			} else if(!strcmp(v,"plgame")) {
+				return AV_MODE_PL_GAME;
+			} else if(!strcmp(v,"neuralthx")) {
+				return AV_MODE_NEURAL_THX;
 			}
 			
 			break;

@@ -27,6 +27,7 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <sys/ioctl.h>
+#include <sys/select.h>
 	
 #include "../sharcs.h"
 #include "main.h"
@@ -194,6 +195,7 @@ void handlePacket(struct sharcs_connection *con, struct sharcs_packet *p) {
 			v = packet_read32(p);
 			
 			if(!sharcs_set_i(f,v)) {
+				/* @TODO include reason for failure, and add request id's */
 				p2 = packet_create();
 				packet_append32(p2,0);
 				packet_append8(p2,M_S_FEATURE_ERROR);
@@ -289,7 +291,7 @@ void handlePacket(struct sharcs_connection *con, struct sharcs_packet *p) {
 			
 			/* update number of modules */
 			packet_seek(p2,5);
-			packet_append32(p2,i-1);
+			packet_append8(p2,i-1);
 			
 			/* send packet */
 			sendPacket(con,p2);

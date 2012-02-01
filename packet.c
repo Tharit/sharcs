@@ -157,10 +157,10 @@ void packet_append_float(struct sharcs_packet *packet,float f) {
 
 void packet_append_string(struct sharcs_packet *packet,const char *cstr) {
   	int len = strlen(cstr);
-    CHECKSIZE(len+4);
+    CHECKSIZE(len+5);
 	packet_append32(packet,len+4);
 	memcpy(packet->data+packet->cursor, cstr, (len+1) * sizeof(char));
-	ADVANCE(len);
+	ADVANCE(len+1);
 }
 
 uint8_t packet_read8(struct sharcs_packet *packet) {
@@ -192,7 +192,7 @@ const char* packet_read_string(struct sharcs_packet *packet) {
 	const char *cstr;
 	cstr = packet->data+packet->cursor;
 	
-	ADVANCE(len);
+	ADVANCE(len+1);
 	
 	return cstr;
 }

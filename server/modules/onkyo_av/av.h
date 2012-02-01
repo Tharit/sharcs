@@ -80,19 +80,30 @@ enum {
 	AV_MODE_MONO_MOVIE		= 0x07,
 	AV_MODE_ORCHESTRA		= 0x08,
 	AV_MODE_UNPLUGGED		= 0x09,
+	AV_MODE_PURE_AUDIO		= 0x11,
 	AV_MODE_STUDIO_MIX		= 0x0A,
 	AV_MODE_TV_LOGIC		= 0x0B,
 	AV_MODE_THEATER			= 0x0D,
 	AV_MODE_ENHANCED7		= 0x0E,
 	AV_MODE_MONO			= 0x0F,
+	
+	/* different modes activated either by AV_MODE_SURROUND or directly */
+	AV_MODE_PL_MOVIE		= 0x80,
+	AV_MODE_PL_MUSIC		= 0x81,
+	AV_MODE_NEO_CINEMA		= 0x82,
+	AV_MODE_NEO_MUSIC		= 0x83,
+	AV_MODE_NEO_THX_CINEMA	= 0x84,	
+	AV_MODE_PL_THX_CINEMA	= 0x85,	
+	AV_MODE_PL_GAME			= 0x86,
+	AV_MODE_NEURAL_THX		= 0x88,
 };
 
 /*
  * available dimmer modes
  */
 enum {
-	AV_DIMMER_BRIGHTEST = 0x8,
-	AV_DIMMER_BRIGHT	= 0x0,
+	AV_DIMMER_BRIGHTEST = 0x0,
+	AV_DIMMER_BRIGHT	= 0x8,
 	AV_DIMMER_DIM		= 0x1,
 	AV_DIMMER_DARK		= 0x2,
 };
@@ -100,7 +111,8 @@ enum {
 /*
  * opens and initializes the connection to the device
  */
-int av_init(const char *devicename,void (*cb)(int,int));
+int av_init_tty(const char *devicename,void (*cb)(int,int));
+int av_init_libftdi(int vendor,int product,const char *description,const char *serial,unsigned int index,void (*cb)(int,int));
 
 /*
  * requests specified value from device
@@ -133,7 +145,7 @@ int av_stop();
  * main routine, handles communication with device
  * errors occuring in this function are critical
  */
-int av_main(struct timeval *tv);
+extern int (*av_main)();
 
 /*
  * returns last error, or NULL

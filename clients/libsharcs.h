@@ -22,7 +22,7 @@ int sharcs_stop();
 /* enumeration */
 int sharcs_retrieve(void (*)(int));
 
-int sharcs_enumerate_module(struct sharcs_module **module,int index);
+int sharcs_enumerate_modules(struct sharcs_module **module,int index);
 
 struct sharcs_module* sharcs_module(sharcs_id id);
 struct sharcs_device* sharcs_device(sharcs_id id);

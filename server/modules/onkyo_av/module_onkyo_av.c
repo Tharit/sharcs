@@ -17,7 +17,8 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
+#include <sys/time.h>
+#include <sys/select.h>
 
 #include "../../../sharcs.h"
 #include "av.h"
@@ -40,7 +41,8 @@ static int enum_input[] = {
 	AV_INPUT_TUNER_FM,
 	AV_INPUT_TUNER_AM,
 	AV_INPUT_CD,
-	AV_INPUT_PHONO
+	AV_INPUT_PHONO,
+	0xFFFF
 };
 
 static const char* enum_input_names[] = {
@@ -59,8 +61,9 @@ static const char* enum_input_names[] = {
 
 
 static int enum_mode[] = {
-	AV_MODE_STEREO,
+	AV_MODE_PURE_AUDIO,
 	AV_MODE_DIRECT,
+	AV_MODE_STEREO,
 	AV_MODE_SURROUND,
 	AV_MODE_ALL_CH_STEREO,
 	AV_MODE_FILM,
@@ -75,12 +78,23 @@ static int enum_mode[] = {
 	AV_MODE_THEATER,
 	AV_MODE_ENHANCED7,
 	AV_MODE_MONO,
+	AV_MODE_PL_MOVIE,
+	AV_MODE_PL_MUSIC,
+	AV_MODE_NEO_CINEMA,
+	AV_MODE_NEO_MUSIC,
+	AV_MODE_NEO_THX_CINEMA,
+	AV_MODE_PL_THX_CINEMA,
+	AV_MODE_PL_GAME,
+	AV_MODE_NEURAL_THX,
+	0xFFFF
 };
 
 
 static const char* enum_mode_names[] = {
-	"stereo",
+	"pure",
 	"direct",
+	"stereo",
+	"surround",
 	"allchstereo",
 	"film",
 	"thx",
@@ -93,14 +107,23 @@ static const char* enum_mode_names[] = {
 	"tvlogic",
 	"theater",
 	"enhanced7",
-	"mono"
+	"mono",
+	"plmovie",
+	"plmusic",
+	"neocinema",
+	"neomusic",
+	"neothxcinema",
+	"plthxcinema",
+	"plgame",
+	"neuralthx",
 };
 
 static int enum_dimmer[] = {
 	AV_DIMMER_BRIGHTEST,
 	AV_DIMMER_BRIGHT,
 	AV_DIMMER_DIM,
-	AV_DIMMER_DARK
+	AV_DIMMER_DARK,
+	0xFFFF
 };
 
 static const char* enum_dimmer_names[] = {
@@ -112,17 +135,37 @@ static const char* enum_dimmer_names[] = {
 
 
 void av_callback(int cmd, int v) {
+	int *e;
+	
+	if(cmd == AV_CMD_MODE) {
+		e = enum_mode;
+	} else if(cmd == AV_CMD_INPUT) {
+		e = enum_input;
+	} else if(cmd == AV_CMD_DIMMER) {
+		e= enum_dimmer;
+	}
+	if(e) {
+		int i;
+		
+		for(i=0;e[i]!=0xFFFF;i++) {
+			if(e[i]==v) {
+				v = i;
+				break;
+			}
+		}
+	}
+	
 	sharcs_callback(SHARCS_ID_FEATURE_MAKE(module_id,device_id,cmd+1),&v);
 }
 
 void *module_thread(void *threadid) {
-	struct timeval tv;
+	int ret;
 	
-	tv.tv_sec 	= 30;
-	tv.tv_usec 	= 0;
+	while(!thread_stop && (ret=av_main())) {
+	}
 	
-	while(!thread_stop) {
-		av_main(&tv);
+	if(!ret) {
+		fprintf(stderr,"mod_onkyo_av: %s\n",av_error());
 	}
 	
 	pthread_exit(NULL);
@@ -133,7 +176,20 @@ int module_start() {
 		return 0;
 	}
 	
-	av_init("/dev/tty.usbserial-FTFRUS14",&av_callback);
+	int ret = 0;
+	
+	/* tty mode
+	if((ret = av_init_tty("/dev/tty.usbserial-FTFRUS14",&av_callback)) != 1) {
+		fprintf(stderr,"mod_onkyo_av: %s\n",av_error());
+		return 0;
+	}
+	*/
+	
+	/* libftdi mode */
+	if((ret = av_init_libftdi(0x0403, 0x6001,NULL,NULL,0,&av_callback)) != 1) {
+		fprintf(stderr,"mod_onkyo_av: %s\n",av_error());
+		return 0;
+	}
 	
 	av_req(AV_CMD_ALL);
 	
@@ -217,7 +273,7 @@ int sharcs_init(struct sharcs_module *mod, void (*cb)(sharcs_id,void *v)) {
 				feature->feature_description 			= "select av input";
 				feature->feature_type 					= SHARCS_FEATURE_ENUM;
 				feature->feature_value.v_enum.value		= SHARCS_VALUE_UNKNOWN;
-				feature->feature_value.v_enum.size		= sizeof(enum_input)/sizeof(int);
+				feature->feature_value.v_enum.size		= 11;
 				feature->feature_value.v_enum.values	= (const char**)enum_input_names;
 				break;
 			case AV_CMD_MODE:
@@ -225,7 +281,7 @@ int sharcs_init(struct sharcs_module *mod, void (*cb)(sharcs_id,void *v)) {
 				feature->feature_description 			= "listening mode";
 				feature->feature_type 					= SHARCS_FEATURE_ENUM;
 				feature->feature_value.v_enum.value		= SHARCS_VALUE_UNKNOWN;
-				feature->feature_value.v_enum.size		= sizeof(enum_mode)/sizeof(int);;
+				feature->feature_value.v_enum.size		= 25;
 				feature->feature_value.v_enum.values	= (const char**)enum_mode_names;
 				break;
 			case AV_CMD_VOLUME:
@@ -249,7 +305,7 @@ int sharcs_init(struct sharcs_module *mod, void (*cb)(sharcs_id,void *v)) {
 				feature->feature_description 			= "set device illumination";
 				feature->feature_type 					= SHARCS_FEATURE_ENUM;
 				feature->feature_value.v_enum.value		= SHARCS_VALUE_UNKNOWN;
-				feature->feature_value.v_enum.size		= sizeof(enum_dimmer)/sizeof(int);;
+				feature->feature_value.v_enum.size		= 4;
 				feature->feature_value.v_enum.values	= (const char**)enum_dimmer_names;
 				
 				break;

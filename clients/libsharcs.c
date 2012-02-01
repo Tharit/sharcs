@@ -45,7 +45,11 @@ time_t lastPing,lastPong;
 
 int (*sharcs_callback_i)(sharcs_id,int);
 int (*sharcs_callback_s)(sharcs_id,const char*);
-				
+void (*sharcs_callback_retrieve)(int);
+
+struct sharcs_module *modules = NULL;
+int numModules = 0;
+
 void handlePacket(struct sharcs_packet *p);
 
 void readFromSocket() {
@@ -172,6 +176,7 @@ void* run(void *threadid) {
 		}
 		
 		FD_SET(pipeFD[0],&ReadFDs);
+		FD_SET(clientSocket,&ExceptFDs);
 		
 		res = select((MAX(clientSocket,pipeFD[0]))+1, &ReadFDs, &WriteFDs, &ExceptFDs, &tv);
 		
@@ -192,8 +197,9 @@ void* run(void *threadid) {
 
 			/* handle errors */
 			if (FD_ISSET(clientSocket, &ExceptFDs)) {
+				/* @TODO detect & handle errors ... */
 				printf("connection lost!\n");
-				break;
+				exit(-1);
 			}
 			/* read data */
 			if (FD_ISSET(clientSocket, &ReadFDs)) {
@@ -274,6 +280,83 @@ void handlePacket(struct sharcs_packet *p) {
 			sharcs_callback_s(f,s);
 			break;
 		}
+		case M_S_RETRIEVE: {
+			int i,j,k,l;
+			struct sharcs_module *m;
+			struct sharcs_device *d;
+			struct sharcs_feature *f;
+			
+			if(modules) {
+				printf("ERROR: modules already received!");
+				return;
+			}
+			
+			/* number of modules */
+			numModules = packet_read8(p);
+			
+			modules = (struct sharcs_module*)malloc(sizeof(struct sharcs_module)*numModules);
+			memset(modules,0,sizeof(struct sharcs_module)*numModules);
+			
+			/* read modules */
+			for(i=0;i<numModules;i++) {
+				m = &modules[i];
+				
+				m->module_id = packet_read32(p);
+				m->module_name = strdup(packet_read_string(p));
+				m->module_description = strdup(packet_read_string(p));
+				m->module_version = strdup(packet_read_string(p));
+				
+				m->module_devices_size = packet_read32(p);
+				m->module_devices = (struct sharcs_device**)malloc(sizeof(struct sharcs_device*)*m->module_devices_size);
+				
+				for(j=0;j<m->module_devices_size;j++) {
+					d = m->module_devices[j] = (struct sharcs_device*)malloc(sizeof(struct sharcs_device));
+						
+					d->device_id = packet_read32(p);
+					d->device_name = strdup(packet_read_string(p));
+					d->device_description = strdup(packet_read_string(p));
+					
+					d->device_features_size = packet_read32(p);
+					d->device_features = (struct sharcs_feature**)malloc(sizeof(struct sharcs_feature*)*d->device_features_size);
+					
+					for(k=0;k<d->device_features_size;k++) {
+						f = d->device_features[k] = (struct sharcs_feature*)malloc(sizeof(struct sharcs_feature));
+						
+						f->feature_id = packet_read32(p);
+						f->feature_name = strdup(packet_read_string(p));
+						f->feature_description = strdup(packet_read_string(p));
+						
+						f->feature_type = packet_read32(p);
+						
+						switch(f->feature_type) {
+							case SHARCS_FEATURE_ENUM:
+								f->feature_value.v_enum.size = packet_read32(p);
+								f->feature_value.v_enum.values = (const char**)malloc(sizeof(char*)*f->feature_value.v_enum.size);
+																										
+								for(l=0;l<f->feature_value.v_enum.size;l++) {
+									f->feature_value.v_enum.values[l] = strdup(packet_read_string(p));
+								}
+								f->feature_value.v_enum.value = packet_read32(p);
+								break;
+							case SHARCS_FEATURE_SWITCH:
+								f->feature_value.v_switch.state = packet_read32(p);
+								break;
+							case SHARCS_FEATURE_RANGE:
+								f->feature_value.v_range.start = packet_read32(p);
+								f->feature_value.v_range.end = packet_read32(p);
+								f->feature_value.v_range.value = packet_read32(p);
+								break;
+						}
+					}		
+				}
+			}
+			
+			if(sharcs_callback_retrieve) {
+				sharcs_callback_retrieve(1);
+			}
+			
+			break;
+		}
 		default: {
 			printf("<< received unhandled packet 0x%02x, size %d\n",packetType,packetLen);
 
@@ -339,6 +422,10 @@ int sharcs_init(int (*callback_i)(sharcs_id,int),
 }
 
 int sharcs_stop() {
+	if(thread_stop) {
+		return 0;
+	}
+	
 	thread_stop = 1;
 	wakeUp();
 	
@@ -347,6 +434,8 @@ int sharcs_stop() {
 	close(clientSocket);
 	close(pipeFD[0]);
 	close(pipeFD[0]);	
+	
+	return 1;
 }
 
 int sharcs_set_i(sharcs_id feature,int value) {
@@ -391,9 +480,10 @@ int sharcs_profile_load(const char *name) {
 }
 
 /* enumeration */
-/* @TODO finish */
 int sharcs_retrieve(void (*cb)(int)) {
 	struct sharcs_packet *p;
+	
+	sharcs_callback_retrieve = cb;
 	
 	p = packet_create();
 	packet_append32(p,0);
@@ -406,19 +496,64 @@ int sharcs_retrieve(void (*cb)(int)) {
 	packet_delete(p);
 }
 
-int sharcs_enumerate_module(struct sharcs_module **module,int index) {
-	return 0;
+int sharcs_enumerate_modules(struct sharcs_module **module,int index) {
+	if(index<0||index>=numModules) {
+		*module = NULL;
+		return 0;
+	}
+	
+	*module = &modules[index];
+	
+	return 1;
 }
 
 struct sharcs_module* sharcs_module(sharcs_id id) {
-	return NULL;	
+	int i = 0;
+	for(i=0;i<numModules;i++) {
+		if(modules[i].module_id == SHARCS_ID_MODULE(id)) {
+			return &modules[i];
+		}
+	}
+	return NULL;
 }
 
-struct sharcs_device* sharcs_device(sharcs_id id) { 
+struct sharcs_device* sharcs_device(sharcs_id id) {
+	int i = 0;
+	struct sharcs_module *m;
+	
+	m = sharcs_module(id);
+	if(!m) {
+		return NULL;
+	}
+	
+	for(i=0;i<m->module_devices_size;i++) {
+		if(m->module_devices[i]->device_id == SHARCS_ID_DEVICE(id)) {
+			return m->module_devices[i];
+		}
+	}
+	
 	return NULL;
 }
 
 struct sharcs_feature* sharcs_feature(sharcs_id id) {
+	int i = 0;
+	struct sharcs_device *d;
+	
+	if(SHARCS_ID_TYPE(id)!=SHARCS_FEATURE) {
+		return NULL;
+	}
+	
+	d = sharcs_device(id);
+	if(!d) {
+		return NULL;
+	}
+	
+	for(i=0;i<d->device_features_size;i++) {
+		if(d->device_features[i]->feature_id == id) {
+			return d->device_features[i];
+		}
+	}
+	
 	return NULL;
 }
 

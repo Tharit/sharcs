@@ -206,7 +206,7 @@ int sharcs_module_load(const char *module_name) {
 		return 0;
 	}
 	
-	fprintf(stdout,"Loaded module '%s' with %d devices\n",module->module_name,module->module_devices_size);
+	fprintf(stdout,"Initializing module '%s' with %d devices...\n",module->module_name,module->module_devices_size);
 	
 	r = module->module_start();
 	
