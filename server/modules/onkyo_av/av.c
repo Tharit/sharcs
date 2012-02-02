@@ -198,7 +198,7 @@ int recvCmd(const char *buf) {
 	}
 	
 	if(!av_validvi(i,v)) {
-		printf("av: received unknown value 0x%2x for '%s'\n",v,av_cmd2str(i));
+		printf("av: received unknown value 0x%2x for '%s' (bytes: '%s')\n",v,av_cmd2str(i),buf);
 		return 0;
 	}
 	
@@ -448,7 +448,7 @@ int av_main_libftdi() {
 		return 1;
 	} 
 	
-	if(answer_pending>=0 && time(NULL)-answer_timer>1) {
+	if(answer_pending>=0 && time(NULL)-answer_timer>=5) {
 		ftdi_write_data(&ftdic,(unsigned char*)answer_buffer,answer_length);
 		answer_timer = time(NULL);
 		return 1;
@@ -561,7 +561,7 @@ int av_main_tty() {
 	if(res<=0&&numPending>0) {
 		time_t now = time(NULL);
 		for(i=0;i<AV_NUM_COMMANDS;i++) {
-			if(pending[i]>0 && now-pending[i]>=1) {
+			if(pending[i]>0 && now-pending[i]>=5) {
 				pending[i] = 0;
 				numPending--;
 				av_req(i);
@@ -656,6 +656,7 @@ const char* av_v2str(int cmd,int v) {
 				case AV_MODE_THEATER: res = "theater"; break;
 				case AV_MODE_ENHANCED7: res = "enhanced7"; break;
 				case AV_MODE_MONO: res = "mono"; break;
+				case AV_MODE_FULL_MONO: res = "fullmono"; break;
 				case AV_MODE_PURE_AUDIO: res = "pureaudio"; break;
 				case AV_MODE_PL_MOVIE: res = "plmovie"; break;
 				case AV_MODE_PL_MUSIC: res = "plmusic"; break;
@@ -749,6 +750,8 @@ int av_str2v(int cmd,const char* v) {
 				return AV_MODE_ENHANCED7;
 			} else if(!strcmp(v,"mono")) {
 				return AV_MODE_MONO;
+			} else if(!strcmp(v,"fullmono")) {
+				return AV_MODE_FULL_MONO;
 			} else if(!strcmp(v,"pureaudio")) {
 				return AV_MODE_PURE_AUDIO;
 			} else if(!strcmp(v,"plmovie")) {

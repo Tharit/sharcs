@@ -93,6 +93,28 @@ struct sharcs_feature* sharcs_feature(sharcs_id id) {
 	return NULL;
 }
 
+struct sharcs_profile* sharcs_profile(int id) {
+	/* @TODO profiles */
+	return NULL;
+}
+
+/* profiles */
+int sharcs_enumerate_profiles(struct sharcs_profile **profile,int index) {
+	return 0;
+}
+
+int sharcs_profile_save(const char *name) {
+	return 0;
+}
+
+int sharcs_profile_load(int profile_id) {
+	return 0;
+}
+
+int sharcs_profile_delete(int profile_id) {
+	return 0;
+}
+
 int sharcs_set_i(sharcs_id feature,int value) {
 	struct sharcs_module *m;
 	struct sharcs_feature *f;
@@ -164,6 +186,13 @@ void sharcs_callback_feature(sharcs_id id,void *v) {
 			f->feature_value.v_enum.value = *((int*)v);
 			break;
 		case SHARCS_FEATURE_SWITCH:
+			if(f->feature_flags & SHARCS_FLAG_POWER) {
+				if(!*((int*)v)) {
+					sharcs_device(id)->device_flags |= SHARCS_FLAG_STANDBY;
+				} else {
+					sharcs_device(id)->device_flags &= ~SHARCS_FLAG_STANDBY;
+				}
+			}
 			fprintf(stdout,"<< feature '%s' changed to '%d'\n",f->feature_name,*((int*)v));
 			f->feature_value.v_switch.state = *((int*)v);
 			break;

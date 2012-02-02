@@ -46,17 +46,17 @@ static int enum_input[] = {
 };
 
 static const char* enum_input_names[] = {
-	"dvd",
-	"vcr/dvr",
-	"cbl/sat",
-	"game/tv",
-	"aux1",
-	"aux2",
-	"tape",
-	"tuner",
-	"tuner(AM)",
-	"cd",
-	"phono"
+	"DVD",
+	"VCR/DVR",
+	"CBL/SAT",
+	"Game/TV",
+	"Aux1",
+	"Aux2",
+	"Tape",
+	"Tuner",
+	"Tuner(AM)",
+	"CD",
+	"Phono"
 };
 
 
@@ -78,6 +78,7 @@ static int enum_mode[] = {
 	AV_MODE_THEATER,
 	AV_MODE_ENHANCED7,
 	AV_MODE_MONO,
+	AV_MODE_FULL_MONO,
 	AV_MODE_PL_MOVIE,
 	AV_MODE_PL_MUSIC,
 	AV_MODE_NEO_CINEMA,
@@ -91,31 +92,32 @@ static int enum_mode[] = {
 
 
 static const char* enum_mode_names[] = {
-	"pure",
-	"direct",
-	"stereo",
-	"surround",
-	"allchstereo",
-	"film",
-	"thx",
-	"action",
-	"musical",
-	"monomovie",
-	"orchestra",
-	"unplugged",
-	"studiomix",
-	"tvlogic",
-	"theater",
-	"enhanced7",
-	"mono",
-	"plmovie",
-	"plmusic",
-	"neocinema",
-	"neomusic",
-	"neothxcinema",
-	"plthxcinema",
-	"plgame",
-	"neuralthx",
+	"Pure Audio",
+	"Direct",
+	"Stereo",
+	"Surround",
+	"All Ch Stereo",
+	"Film",
+	"THX",
+	"Action",
+	"Musical",
+	"Mono Movie",
+	"Orchestra",
+	"Unplugged",
+	"Studio Mix",
+	"TV Logic",
+	"Theater",
+	"Enhanced7",
+	"Mono",
+	"Full Mono",
+	"PLII Movie",
+	"PLII Music",
+	"Neo6: Cinema",
+	"Neo6: music",
+	"Neo THX Cinema",
+	"PLII THX Cinema",
+	"PLII Game",
+	"Neural THX 5.1",
 };
 
 static int enum_dimmer[] = {
@@ -127,10 +129,10 @@ static int enum_dimmer[] = {
 };
 
 static const char* enum_dimmer_names[] = {
-	"brightest",
-	"bright",
-	"dim",
-	"dark"
+	"Brightest",
+	"Bright",
+	"Dim",
+	"Dark"
 };
 
 
@@ -253,12 +255,14 @@ int sharcs_init(struct sharcs_module *mod, void (*cb)(sharcs_id,void *v)) {
 	for(i=0;i<AV_NUM_COMMANDS;i++) {
 		feature = (struct sharcs_feature*)malloc(sizeof(struct sharcs_feature));
 		feature->feature_id 		= SHARCS_ID_FEATURE_MAKE(mod->module_id,device_id,i+1);
+		feature->feature_flags		= 0;
 		device->device_features[i]	= feature;
 		
 		switch(i) {
 			case AV_CMD_POWER:
 				feature->feature_name 					= "Power";
 				feature->feature_description 			= "toggle device power state";
+				feature->feature_flags					= SHARCS_FLAG_POWER;
 				feature->feature_type 					= SHARCS_FEATURE_SWITCH;
 				feature->feature_value.v_switch.state 	= SHARCS_VALUE_UNKNOWN;
 				break;
@@ -281,13 +285,14 @@ int sharcs_init(struct sharcs_module *mod, void (*cb)(sharcs_id,void *v)) {
 				feature->feature_description 			= "listening mode";
 				feature->feature_type 					= SHARCS_FEATURE_ENUM;
 				feature->feature_value.v_enum.value		= SHARCS_VALUE_UNKNOWN;
-				feature->feature_value.v_enum.size		= 25;
+				feature->feature_value.v_enum.size		= 26;
 				feature->feature_value.v_enum.values	= (const char**)enum_mode_names;
 				break;
 			case AV_CMD_VOLUME:
 				feature->feature_name 					= "Volume";
 				feature->feature_description 			= "main zone volume";
 				feature->feature_type 					= SHARCS_FEATURE_RANGE;
+				feature->feature_flags				 	= SHARCS_FLAG_SLIDER | SHARCS_FLAG_INVERSE;
 				feature->feature_value.v_range.start 	= 0;
 				feature->feature_value.v_range.end	 	= 60;
 				feature->feature_value.v_range.value	= SHARCS_VALUE_UNKNOWN;

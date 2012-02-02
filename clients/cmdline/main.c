@@ -57,6 +57,8 @@ void callback_retrieve(int success) {
 					for(l=0;l<f->feature_value.v_enum.size;l++) {
 						printf("        - {%02d} %s\n",l,f->feature_value.v_enum.values[l]);
 					}
+				} else if(f->feature_type == SHARCS_FEATURE_RANGE) {
+					printf("        %d - %d\n",f->feature_value.v_range.start,f->feature_value.v_range.end);
 				}
 			}
 		}
@@ -113,7 +115,7 @@ int main(int argc,char **argv) {
 		return 0;
 	}
 	
-	sharcs_init(&callback_feature_i,&callback_feature_s);
+	sharcs_init("127.0.0.1",&callback_feature_i,&callback_feature_s);
 	
 	if(feature!=0) {
 		sharcs_set_i(feature,v);

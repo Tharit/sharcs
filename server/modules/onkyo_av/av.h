@@ -17,7 +17,7 @@
 #ifndef _AV_H_
 #define _AV_H_
 
-#define AV_VERSION "0.1"
+#define AV_VERSION "0.2"
 
 /*
  * available commands
@@ -86,7 +86,7 @@ enum {
 	AV_MODE_THEATER			= 0x0D,
 	AV_MODE_ENHANCED7		= 0x0E,
 	AV_MODE_MONO			= 0x0F,
-	
+	AV_MODE_FULL_MONO		= 0x13,
 	/* different modes activated either by AV_MODE_SURROUND or directly */
 	AV_MODE_PL_MOVIE		= 0x80,
 	AV_MODE_PL_MUSIC		= 0x81,

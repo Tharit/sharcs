@@ -229,6 +229,53 @@ void handlePacket(struct sharcs_connection *con, struct sharcs_packet *p) {
 			
 			break;
 		}
+		case M_C_UPDATE: {
+			struct sharcs_module *m;
+			struct sharcs_device *d;
+			struct sharcs_feature *f;
+			
+			/* @TODO: timestamp bei features der letzte änderung speichert.. nur updates schicken! */
+			int i,j,k,l;
+			
+			/* enumerate modules */
+			p2 = packet_create();
+			packet_append32(p2,0);
+			packet_append8(p2,M_S_UPDATE);
+			packet_append32(p2,0);
+			
+			i = 0;
+			l = 0;
+			while(sharcs_enumerate_modules(&m,i++)) {
+				for(j=0;j<m->module_devices_size;j++) {					
+					d = m->module_devices[j];
+					for(k=0;k<d->device_features_size;k++) {
+						l++;
+						f = d->device_features[k];
+						packet_append32(p2,f->feature_id);
+						switch(f->feature_type) {
+							case SHARCS_FEATURE_ENUM:
+								packet_append32(p2,f->feature_value.v_enum.value);
+								break;
+							case SHARCS_FEATURE_SWITCH:
+								packet_append32(p2,f->feature_value.v_switch.state);
+								break;
+							case SHARCS_FEATURE_RANGE:
+								packet_append32(p2,f->feature_value.v_range.value);
+								break;
+						}
+					}		
+				}
+			}
+			
+			/* update number of modules */
+			packet_seek(p2,5);
+			packet_append32(p2,l);
+			
+			/* send packet */
+			sendPacket(con,p2);
+			packet_delete(p2);
+			break;
+		}
 		case M_C_RETRIEVE: {
 			struct sharcs_module *m;
 			struct sharcs_device *d;
@@ -259,6 +306,8 @@ void handlePacket(struct sharcs_connection *con, struct sharcs_packet *p) {
 					packet_append_string(p2,d->device_name);
 					packet_append_string(p2,d->device_description);
 					
+					packet_append32(p2,d->device_flags);
+					
 					packet_append32(p2,d->device_features_size);
 					for(k=0;k<d->device_features_size;k++) {
 						f = d->device_features[k];
@@ -267,6 +316,7 @@ void handlePacket(struct sharcs_connection *con, struct sharcs_packet *p) {
 						packet_append_string(p2,f->feature_name);
 						packet_append_string(p2,f->feature_description);
 						packet_append32(p2,f->feature_type);
+						packet_append32(p2,f->feature_flags);
 						
 						switch(f->feature_type) {
 							case SHARCS_FEATURE_ENUM:
@@ -297,6 +347,15 @@ void handlePacket(struct sharcs_connection *con, struct sharcs_packet *p) {
 			sendPacket(con,p2);
 			packet_delete(p2);
 			
+			break;
+		}
+		case M_C_PROFILE_LOAD: {
+			break;
+		}
+		case M_C_PROFILE_SAVE: {
+			break;			
+		}
+		case M_C_PROFILE_DELETE: {
 			break;
 		}
 		default: {

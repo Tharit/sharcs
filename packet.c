@@ -14,12 +14,14 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "packet.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <dlfcn.h>
 #include <string.h>
+
+#include "packet.h"
+
+#ifndef __APPLE__
 
 #ifndef HAVE_BYTE_SWAP_H
 # ifndef bswap_64
@@ -75,6 +77,7 @@ unsigned short bswap_16(unsigned short v)
 }
 # endif
 #endif 
+#endif
 
 
 struct sharcs_packet* packet_create() {
@@ -218,7 +221,6 @@ void packet_seek(struct sharcs_packet *packet,int pos) {
 }
 
 void packet_dump(struct sharcs_packet *packet) {
-	char conv[4];
 	int i,j;
 	
 	for(i=0;i<(packet->size/16)+1;i++) {

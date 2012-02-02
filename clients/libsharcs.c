@@ -38,7 +38,7 @@ int thread_stop;
 pthread_mutex_t mutex_write = PTHREAD_MUTEX_INITIALIZER;
 int pipeFD[2];
 
-int clientSocket;
+int clientSocket = -1;
 char *writeBuffer,*readBuffer;
 int readCounter, writeCounter, writeBufferSize, readBufferSize;
 time_t lastPing,lastPong;
@@ -51,6 +51,11 @@ struct sharcs_module *modules = NULL;
 int numModules = 0;
 
 void handlePacket(struct sharcs_packet *p);
+void readFromSocket();
+void writeToSocket();
+void sendPacket(struct sharcs_packet *p);
+void wakeUp();
+void* run(void *threadid);
 
 void readFromSocket() {
 	int nBytes = recv(clientSocket, readBuffer + readCounter, readBufferSize - readCounter, 0);
@@ -67,9 +72,7 @@ void readFromSocket() {
 
 	/* check if a complete packet was received */
 	int packetLen = 0;
-	struct sharcs_packet *p,*p2;
-	
-	int packetType;
+	struct sharcs_packet *p;
 	
 	while(1) {
 		if(readCounter > 0) {
@@ -242,12 +245,13 @@ void handlePacket(struct sharcs_packet *p) {
 			int f;
 			
 			f = packet_read32(p);
+			
 			sharcs_callback_i(f,SHARCS_VALUE_ERROR);
 			break;
 		}
 		case M_S_FEATURE_I: {
 			struct sharcs_feature *feature;
-			int f,v,i;
+			int f,v;
 			
 			f = packet_read32(p);
 			v = packet_read32(p);
@@ -261,6 +265,15 @@ void handlePacket(struct sharcs_packet *p) {
 					break;
 				case SHARCS_FEATURE_SWITCH:
 					feature->feature_value.v_switch.state = v;
+					
+					if(feature->feature_flags & SHARCS_FLAG_POWER) {
+						if(!v) {
+							sharcs_device(f)->device_flags |= SHARCS_FLAG_STANDBY;
+						} else {
+							sharcs_device(f)->device_flags &= ~SHARCS_FLAG_STANDBY;
+						}
+					}
+					
 					break;
 				case SHARCS_FEATURE_RANGE:
 					feature->feature_value.v_range.value = v;
@@ -280,6 +293,18 @@ void handlePacket(struct sharcs_packet *p) {
 			sharcs_callback_s(f,s);
 			break;
 		}
+        case M_S_UPDATE: {
+            int i,n,f,v;
+			
+            n = packet_read32(p);
+            for(i=0;i<n;i++) {
+                f = packet_read32(p);
+                v = packet_read32(p);
+			    sharcs_callback_i(f,v);
+            }
+            
+            break;
+        }
 		case M_S_RETRIEVE: {
 			int i,j,k,l;
 			struct sharcs_module *m;
@@ -316,6 +341,8 @@ void handlePacket(struct sharcs_packet *p) {
 					d->device_name = strdup(packet_read_string(p));
 					d->device_description = strdup(packet_read_string(p));
 					
+					d->device_flags = packet_read32(p);
+					
 					d->device_features_size = packet_read32(p);
 					d->device_features = (struct sharcs_feature**)malloc(sizeof(struct sharcs_feature*)*d->device_features_size);
 					
@@ -325,9 +352,10 @@ void handlePacket(struct sharcs_packet *p) {
 						f->feature_id = packet_read32(p);
 						f->feature_name = strdup(packet_read_string(p));
 						f->feature_description = strdup(packet_read_string(p));
-						
+
 						f->feature_type = packet_read32(p);
-						
+						f->feature_flags = packet_read32(p);
+												
 						switch(f->feature_type) {
 							case SHARCS_FEATURE_ENUM:
 								f->feature_value.v_enum.size = packet_read32(p);
@@ -357,6 +385,15 @@ void handlePacket(struct sharcs_packet *p) {
 			
 			break;
 		}
+		case M_S_PROFILE_LOAD: {
+			break;
+		}
+		case M_S_PROFILE_SAVE: {
+			break;			
+		}
+		case M_S_PROFILE_DELETE: {
+			break;
+		}
 		default: {
 			printf("<< received unhandled packet 0x%02x, size %d\n",packetType,packetLen);
 
@@ -370,7 +407,8 @@ void handlePacket(struct sharcs_packet *p) {
  * API
  *============================================================
  */
-int sharcs_init(int (*callback_i)(sharcs_id,int),
+int sharcs_init(const char *server,
+                int (*callback_i)(sharcs_id,int),
 				int (*callback_s)(sharcs_id,const char*)) {
 	
 	sharcs_callback_i = callback_i;
@@ -392,7 +430,7 @@ int sharcs_init(int (*callback_i)(sharcs_id,int),
 	memset(&addr,0,sizeof(addr)); 
 	addr.sin_family			=	AF_INET;
 	addr.sin_port			=	htons(8585); 
-	inet_pton(AF_INET, "127.0.0.1", &(addr.sin_addr));
+	inet_pton(AF_INET, server, &(addr.sin_addr));
 	
 	res = connect(clientSocket,(struct sockaddr*)&addr,sizeof(addr));
 
@@ -422,7 +460,7 @@ int sharcs_init(int (*callback_i)(sharcs_id,int),
 }
 
 int sharcs_stop() {
-	if(thread_stop) {
+	if(clientSocket<0||thread_stop) {
 		return 0;
 	}
 	
@@ -435,12 +473,18 @@ int sharcs_stop() {
 	close(pipeFD[0]);
 	close(pipeFD[0]);	
 	
+    clientSocket = -1;
+    
 	return 1;
 }
 
 int sharcs_set_i(sharcs_id feature,int value) {
 	struct sharcs_packet *p;
 	
+    if(clientSocket<0) {
+        return 0;
+    }
+    
 	p = packet_create();
 	packet_append32(p,0);
 	packet_append8(p,M_C_FEATURE_I);
@@ -452,11 +496,17 @@ int sharcs_set_i(sharcs_id feature,int value) {
 	wakeUp();
 	
 	packet_delete(p);
+    
+    return 1;
 }
 
 int sharcs_set_s(sharcs_id feature,const char* value) {
 	struct sharcs_packet *p;
 	
+    if(clientSocket<0) {
+        return 0;
+    }
+    
 	p = packet_create();
 	packet_append32(p,0);
 	packet_append8(p,M_C_FEATURE_S);
@@ -468,32 +518,53 @@ int sharcs_set_s(sharcs_id feature,const char* value) {
 	wakeUp();
 	
 	packet_delete(p);
+    
+    return 1;
 }
 
 /* profiles */
+int sharcs_enumerate_profiles(struct sharcs_profile **profile,int index) {
+	return 0;
+}
+
 int sharcs_profile_save(const char *name) {
 	return 0;
 }
 
-int sharcs_profile_load(const char *name) {
+int sharcs_profile_load(int profile_id) {
+	return 0;
+}
+
+int sharcs_profile_delete(int profile_id) {
 	return 0;
 }
 
 /* enumeration */
 int sharcs_retrieve(void (*cb)(int)) {
 	struct sharcs_packet *p;
+    
+    if(clientSocket<0) {
+        return 0;
+    }
 	
 	sharcs_callback_retrieve = cb;
 	
-	p = packet_create();
-	packet_append32(p,0);
-	packet_append8(p,M_C_RETRIEVE);
-	
+    p = packet_create();
+    packet_append32(p,0);
+    
+    if(modules) {
+        packet_append8(p,M_C_UPDATE);    
+    } else {
+        packet_append8(p,M_C_RETRIEVE);
+	}
+    
 	sendPacket(p);
 	
 	wakeUp();
 	
 	packet_delete(p);
+    
+    return 1;
 }
 
 int sharcs_enumerate_modules(struct sharcs_module **module,int index) {
@@ -557,3 +628,6 @@ struct sharcs_feature* sharcs_feature(sharcs_id id) {
 	return NULL;
 }
 
+struct sharcs_profile* sharcs_profile(int id) {
+	/* @TODO profiles */
+}

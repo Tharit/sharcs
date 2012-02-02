@@ -16,7 +16,7 @@
 
 #include "../sharcs.h"
 
-int sharcs_init(int (*)(sharcs_id,int),int (*)(sharcs_id,const char*));
+int sharcs_init(const char* server,int (*)(sharcs_id,int),int (*)(sharcs_id,const char*));
 int sharcs_stop();
 
 /* enumeration */
@@ -27,11 +27,15 @@ int sharcs_enumerate_modules(struct sharcs_module **module,int index);
 struct sharcs_module* sharcs_module(sharcs_id id);
 struct sharcs_device* sharcs_device(sharcs_id id);
 struct sharcs_feature* sharcs_feature(sharcs_id id);
+struct sharcs_profile* sharcs_profile(int id);
 
 /* features */
 int sharcs_set_i(sharcs_id,int);
 int sharcs_set_s(sharcs_id,const char*);
 
 /* profiles */
+int sharcs_enumerate_profiles(struct sharcs_profile **profile,int index);
+
 int sharcs_profile_save(const char *name);
-int sharcs_profile_load(const char *name);
+int sharcs_profile_load(int profile_id);
+int sharcs_profile_delete(int profile_id);

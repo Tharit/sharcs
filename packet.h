@@ -17,6 +17,15 @@
 #ifndef _PACKET_H_
 #define _PACKET_H_
 
+#ifdef __APPLE__
+
+#include <libkern/OSByteOrder.h>
+
+#define bswap_64(x) OSSwapInt64(x)
+#define bswap_32(x) OSSwapInt32(x)
+#define bswap_16(x) OSSwapInt16(x)
+
+#else
 #ifndef HAVE_BYTE_SWAP_H
 # ifndef bswap_64
 extern unsigned long long bswap_64(unsigned long long v);
@@ -27,6 +36,7 @@ extern unsigned long bswap_32(unsigned long v);
 # ifndef bswap_16
 extern unsigned short bswap_16(unsigned short v);
 # endif
+#endif
 #endif
 
 #ifndef uint8_t
@@ -53,7 +63,7 @@ struct sharcs_packet {
 		
 struct sharcs_packet* packet_create_buffer(const char *src, int len);
 struct sharcs_packet* packet_create();
-void packet_free(struct sharcs_packet *packet);
+void packet_delete(struct sharcs_packet *packet);
 
 void packet_append8(struct sharcs_packet *packet,uint8_t byte);
 void packet_append16(struct sharcs_packet *packet,uint16_t word);

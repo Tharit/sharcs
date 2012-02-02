@@ -6,7 +6,7 @@ typedef int sharcs_id;
 enum {
 	SHARCS_MODULE = 1,
 	SHARCS_DEVICE = 2,
-	SHARCS_FEATURE = 3,
+	SHARCS_FEATURE = 3
 };
 
 #define SHARCS_ID_TYPE(id) (id&0xFF000000)>>24
@@ -32,6 +32,11 @@ enum {
 	M_S_FEATURE_ERROR,
 	M_S_RETRIEVE,
 	M_S_PING,
+	M_S_UPDATE,
+	
+	M_S_PROFILE_LOAD,
+	M_S_PROFILE_SAVE,
+	M_S_PROFILE_DELETE,
 };
 
 enum {
@@ -39,6 +44,11 @@ enum {
 	M_C_FEATURE_I,
 	M_C_FEATURE_S,
 	M_C_RETRIEVE,
+	M_C_UPDATE,
+	
+	M_C_PROFILE_LOAD,
+	M_C_PROFILE_SAVE,
+	M_C_PROFILE_DELETE,
 };
 
 /*
@@ -48,6 +58,7 @@ enum {
 	SHARCS_FEATURE_RANGE 	= 0x1,
 	SHARCS_FEATURE_SWITCH 	= 0x2,
 	SHARCS_FEATURE_ENUM		= 0x3,
+	/* @TODO SHARCS_FEATURE_ACTION	= 0x4, */
 };
 
 enum { 
@@ -55,6 +66,13 @@ enum {
 	SHARCS_VALUE_OFF 		= 0x0,
 	SHARCS_VALUE_UNKNOWN 	= 0x0FFFFFFF,
 	SHARCS_VALUE_ERROR		= 0x0EFFFFFF,
+};
+
+enum {
+	SHARCS_FLAG_SLIDER		= 1 << 0,
+	SHARCS_FLAG_INVERSE		= 1 << 1,
+	SHARCS_FLAG_POWER		= 1 << 2,
+	SHARCS_FLAG_STANDBY		= 1 << 2,
 };
 
 struct sharcs_feature_range {
@@ -80,6 +98,7 @@ struct sharcs_feature {
 	const char *feature_description;
 	
 	int feature_type;
+	int feature_flags;
 	
 	union values {
 	/* SHARCS_FEATURE_RANGE */
@@ -102,6 +121,8 @@ struct sharcs_device {
 	const char *device_name;
 	const char *device_description;
 	
+	int device_flags;
+	
 	int device_features_size;
 	struct sharcs_feature **device_features;
 };
@@ -123,6 +144,19 @@ struct sharcs_module {
 	int (*module_stop)();
 	int (*module_set_i)(sharcs_id feature_id, int value);
 	int (*module_set_s)(sharcs_id feature_id, const char *value);
+};
+
+/**
+ * profiles
+ */
+struct sharcs_profile {
+	int profile_id;
+	
+	const char *profile_name;
+	
+	int profile_size;
+	int *profile_features;
+	int *profile_values;
 };
 
 #endif
