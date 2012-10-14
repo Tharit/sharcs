@@ -14,10 +14,19 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#import <UIKit/UIKit.h>
+#ifndef _TTY_H_
+#define _TTY_H_
 
-@interface AddServerVC : UITableViewController
+typedef struct tty_context* TTYCTX;
+	 
+const char* tty_error(TTYCTX c);
+TTYCTX tty_init_libftdi(int vendor,int product,const char *description,const char *serial,unsigned int index,void (*cb)(const char*,int));
+TTYCTX tty_init_tty(const char *devicename,void (*cb)(const char*,int));
+int tty_main(TTYCTX c);
+int tty_busy(TTYCTX c);
+int tty_stop(TTYCTX c);
+int tty_send(TTYCTX c,const char *s);
+int tty_main(TTYCTX c);
+int tty_set_event_char(TTYCTX c,char e);
 
-@property (strong,nonatomic) IBOutlet UITextField *nameInput, *addressInput;
-
-@end
+#endif

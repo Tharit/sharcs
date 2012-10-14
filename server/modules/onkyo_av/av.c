@@ -107,8 +107,9 @@ void _sendCmd(const char *buf) {
 	pthread_mutex_lock( &mutex_write );
 	
 	if(writeCounter+n>BUFFER_SIZE) {
-		fprintf(stderr,"write buffer overflow detected\n");
-		exit(-1);
+		fprintf(stderr,"av: write buffer full, command skipped!\n");
+		pthread_mutex_unlock( &mutex_write );
+		return;
 	}
 	memcpy(writeBuffer+writeCounter,buf,n);
 	writeCounter+=n;
@@ -257,13 +258,14 @@ int av_init_libftdi(int vendor,int product,const char *description,const char *s
 	ftdi_usb_purge_rx_buffer(&ftdic);
 	ftdi_set_latency_timer(&ftdic,40);
 	ftdi_set_event_char(&ftdic,0x1A,1);
-	
+
 	// set av_main implementation
 	av_mode = AV_MODE_LIBFTDI;
 	av_main = &av_main_libftdi;
 	
 	// initialize variables
 	av_init_internal(cb);
+	
 	
 	return 1;
 }

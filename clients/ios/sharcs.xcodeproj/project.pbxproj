@@ -26,7 +26,10 @@
 		5B3D46B414DAE14000259795 /* NSNotificationCenter+Additions.m in Sources */ = {isa = PBXBuildFile; fileRef = 5B3D46B314DAE14000259795 /* NSNotificationCenter+Additions.m */; };
 		5B8858D214DB416400062FFC /* Icon.png in Resources */ = {isa = PBXBuildFile; fileRef = 5B8858D014DB416400062FFC /* Icon.png */; };
 		5B8858D314DB416400062FFC /* Icon@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 5B8858D114DB416400062FFC /* Icon@2x.png */; };
-		5BF7883914DAEDA400915D49 /* libBlocksKit.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5B3D46CE14DAEAB300259795 /* libBlocksKit.a */; };
+		5BE352C41629FE8300735736 /* libBlocksKit.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5BE352B71629FC5D00735736 /* libBlocksKit.a */; };
+		5BE352C7162AD1FE00735736 /* ProfilesVC.m in Sources */ = {isa = PBXBuildFile; fileRef = 5BE352C6162AD1FE00735736 /* ProfilesVC.m */; };
+		5BE35303162ADE7400735736 /* AddProfileVC.m in Sources */ = {isa = PBXBuildFile; fileRef = 5BE35302162ADE7400735736 /* AddProfileVC.m */; };
+		5BE35306162B067700735736 /* FeaturePickerVC.m in Sources */ = {isa = PBXBuildFile; fileRef = 5BE35305162B067700735736 /* FeaturePickerVC.m */; };
 		5BF7883B14DAEE0000915D49 /* MessageUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5BF7883A14DAEE0000915D49 /* MessageUI.framework */; };
 		5BF7883E14DB024A00915D49 /* EnumPickerVC.m in Sources */ = {isa = PBXBuildFile; fileRef = 5BF7883D14DB024A00915D49 /* EnumPickerVC.m */; };
 		5BF7884014DB09E100915D49 /* Default.png in Resources */ = {isa = PBXBuildFile; fileRef = 5BF7883F14DB09E100915D49 /* Default.png */; };
@@ -35,54 +38,47 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
-		5B3D46C914DAEAB300259795 /* PBXContainerItemProxy */ = {
+		5BE352B61629FC5D00735736 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = 5B3D46BC14DAEAB200259795 /* BlocksKit.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = 6CC40A2A1447B58600E47595;
-			remoteInfo = "iOS Framework";
-		};
-		5B3D46CB14DAEAB300259795 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 5B3D46BC14DAEAB200259795 /* BlocksKit.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = 6CC40A751447BB1400E47595;
-			remoteInfo = "OS X Framework";
-		};
-		5B3D46CD14DAEAB300259795 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 5B3D46BC14DAEAB200259795 /* BlocksKit.xcodeproj */;
+			containerPortal = 5BE352A91629FC5D00735736 /* BlocksKit.xcodeproj */;
 			proxyType = 2;
 			remoteGlobalIDString = 6C3DBF8D1382F1BA00E6C9AA;
 			remoteInfo = "iOS Library";
 		};
-		5B3D46CF14DAEAB300259795 /* PBXContainerItemProxy */ = {
+		5BE352B81629FC5D00735736 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = 5B3D46BC14DAEAB200259795 /* BlocksKit.xcodeproj */;
+			containerPortal = 5BE352A91629FC5D00735736 /* BlocksKit.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 6CC40A751447BB1400E47595;
+			remoteInfo = "OS X Framework";
+		};
+		5BE352BA1629FC5D00735736 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 5BE352A91629FC5D00735736 /* BlocksKit.xcodeproj */;
 			proxyType = 2;
 			remoteGlobalIDString = 6CC08FCE1385555D00DDEABB;
 			remoteInfo = "OS X Library";
 		};
-		5B3D46D114DAEAB300259795 /* PBXContainerItemProxy */ = {
+		5BE352BC1629FC5D00735736 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = 5B3D46BC14DAEAB200259795 /* BlocksKit.xcodeproj */;
+			containerPortal = 5BE352A91629FC5D00735736 /* BlocksKit.xcodeproj */;
 			proxyType = 2;
 			remoteGlobalIDString = 6CC0900913855CAE00DDEABB;
 			remoteInfo = "Chameleon Library";
 		};
-		5B3D46D314DAEAB300259795 /* PBXContainerItemProxy */ = {
+		5BE352BE1629FC5D00735736 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = 5B3D46BC14DAEAB200259795 /* BlocksKit.xcodeproj */;
+			containerPortal = 5BE352A91629FC5D00735736 /* BlocksKit.xcodeproj */;
 			proxyType = 2;
 			remoteGlobalIDString = 60FF000713C023CB004A1394;
 			remoteInfo = "iOS Tests";
 		};
-		5BF7883714DAED9D00915D49 /* PBXContainerItemProxy */ = {
+		5BE352C01629FC7900735736 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = 5B3D46BC14DAEAB200259795 /* BlocksKit.xcodeproj */;
+			containerPortal = 5BE352A91629FC5D00735736 /* BlocksKit.xcodeproj */;
 			proxyType = 1;
-			remoteGlobalIDString = 6C3DBF8C1382F1BA00E6C9AA;
-			remoteInfo = "iOS Library";
+			remoteGlobalIDString = 6CFC4B5914E212E00036F8ED;
+			remoteInfo = "iOS Framework";
 		};
 /* End PBXContainerItemProxy section */
 
@@ -113,9 +109,15 @@
 		5B3D46AE14DADE1500259795 /* packet.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = packet.h; path = ../../../packet.h; sourceTree = "<group>"; };
 		5B3D46B214DAE14000259795 /* NSNotificationCenter+Additions.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NSNotificationCenter+Additions.h"; sourceTree = "<group>"; };
 		5B3D46B314DAE14000259795 /* NSNotificationCenter+Additions.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "NSNotificationCenter+Additions.m"; sourceTree = "<group>"; };
-		5B3D46BC14DAEAB200259795 /* BlocksKit.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = BlocksKit.xcodeproj; path = ../../../github/BlocksKit/BlocksKit.xcodeproj; sourceTree = "<group>"; };
 		5B8858D014DB416400062FFC /* Icon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Icon.png; sourceTree = "<group>"; };
 		5B8858D114DB416400062FFC /* Icon@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Icon@2x.png"; sourceTree = "<group>"; };
+		5BE352A91629FC5D00735736 /* BlocksKit.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = BlocksKit.xcodeproj; path = ../../../BlocksKit/BlocksKit.xcodeproj; sourceTree = "<group>"; };
+		5BE352C5162AD1FE00735736 /* ProfilesVC.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ProfilesVC.h; sourceTree = "<group>"; };
+		5BE352C6162AD1FE00735736 /* ProfilesVC.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ProfilesVC.m; sourceTree = "<group>"; };
+		5BE35301162ADE7400735736 /* AddProfileVC.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AddProfileVC.h; sourceTree = "<group>"; };
+		5BE35302162ADE7400735736 /* AddProfileVC.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AddProfileVC.m; sourceTree = "<group>"; };
+		5BE35304162B067600735736 /* FeaturePickerVC.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FeaturePickerVC.h; sourceTree = "<group>"; };
+		5BE35305162B067700735736 /* FeaturePickerVC.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FeaturePickerVC.m; sourceTree = "<group>"; };
 		5BF7883A14DAEE0000915D49 /* MessageUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MessageUI.framework; path = System/Library/Frameworks/MessageUI.framework; sourceTree = SDKROOT; };
 		5BF7883C14DB024A00915D49 /* EnumPickerVC.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EnumPickerVC.h; sourceTree = "<group>"; };
 		5BF7883D14DB024A00915D49 /* EnumPickerVC.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = EnumPickerVC.m; sourceTree = "<group>"; };
@@ -131,8 +133,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5BE352C41629FE8300735736 /* libBlocksKit.a in Frameworks */,
 				5BF7883B14DAEE0000915D49 /* MessageUI.framework in Frameworks */,
-				5BF7883914DAEDA400915D49 /* libBlocksKit.a in Frameworks */,
 				5B09F7AD14DAD94600544196 /* UIKit.framework in Frameworks */,
 				5B09F7AF14DAD94600544196 /* Foundation.framework in Frameworks */,
 				5B09F7B114DAD94600544196 /* CoreGraphics.framework in Frameworks */,
@@ -162,7 +164,7 @@
 		5B09F7AB14DAD94600544196 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				5B3D46BC14DAEAB200259795 /* BlocksKit.xcodeproj */,
+				5BE352A91629FC5D00735736 /* BlocksKit.xcodeproj */,
 				5BF7883A14DAEE0000915D49 /* MessageUI.framework */,
 				5B09F7AC14DAD94600544196 /* UIKit.framework */,
 				5B09F7AE14DAD94600544196 /* Foundation.framework */,
@@ -225,6 +227,12 @@
 				5BF7884214DB0E1900915D49 /* ServerListVC.m */,
 				5BF7884714DB179E00915D49 /* AddServerVC.h */,
 				5BF7884814DB179E00915D49 /* AddServerVC.m */,
+				5BE352C5162AD1FE00735736 /* ProfilesVC.h */,
+				5BE352C6162AD1FE00735736 /* ProfilesVC.m */,
+				5BE35301162ADE7400735736 /* AddProfileVC.h */,
+				5BE35302162ADE7400735736 /* AddProfileVC.m */,
+				5BE35304162B067600735736 /* FeaturePickerVC.h */,
+				5BE35305162B067700735736 /* FeaturePickerVC.m */,
 			);
 			name = Controllers;
 			sourceTree = "<group>";
@@ -249,15 +257,14 @@
 			name = Additions;
 			sourceTree = "<group>";
 		};
-		5B3D46BD14DAEAB200259795 /* Products */ = {
+		5BE352AA1629FC5D00735736 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				5B3D46CA14DAEAB300259795 /* BlocksKit.framework */,
-				5B3D46CC14DAEAB300259795 /* BlocksKit.framework */,
-				5B3D46CE14DAEAB300259795 /* libBlocksKit.a */,
-				5B3D46D014DAEAB300259795 /* BlocksKit.dylib */,
-				5B3D46D214DAEAB300259795 /* BlocksKit_Chameleon.dylib */,
-				5B3D46D414DAEAB300259795 /* iOS Tests.app */,
+				5BE352B71629FC5D00735736 /* libBlocksKit.a */,
+				5BE352B91629FC5D00735736 /* BlocksKit.framework */,
+				5BE352BB1629FC5D00735736 /* BlocksKit.dylib */,
+				5BE352BD1629FC5D00735736 /* BlocksKit_Chameleon.dylib */,
+				5BE352BF1629FC5D00735736 /* iOS Tests.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -276,7 +283,7 @@
 			buildRules = (
 			);
 			dependencies = (
-				5BF7883814DAED9D00915D49 /* PBXTargetDependency */,
+				5BE352C11629FC7900735736 /* PBXTargetDependency */,
 			);
 			name = sharcs;
 			productName = sharcs;
@@ -303,8 +310,8 @@
 			projectDirPath = "";
 			projectReferences = (
 				{
-					ProductGroup = 5B3D46BD14DAEAB200259795 /* Products */;
-					ProjectRef = 5B3D46BC14DAEAB200259795 /* BlocksKit.xcodeproj */;
+					ProductGroup = 5BE352AA1629FC5D00735736 /* Products */;
+					ProjectRef = 5BE352A91629FC5D00735736 /* BlocksKit.xcodeproj */;
 				},
 			);
 			projectRoot = "";
@@ -315,46 +322,39 @@
 /* End PBXProject section */
 
 /* Begin PBXReferenceProxy section */
-		5B3D46CA14DAEAB300259795 /* BlocksKit.framework */ = {
-			isa = PBXReferenceProxy;
-			fileType = wrapper.cfbundle;
-			path = BlocksKit.framework;
-			remoteRef = 5B3D46C914DAEAB300259795 /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		5B3D46CC14DAEAB300259795 /* BlocksKit.framework */ = {
-			isa = PBXReferenceProxy;
-			fileType = wrapper.framework;
-			path = BlocksKit.framework;
-			remoteRef = 5B3D46CB14DAEAB300259795 /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		5B3D46CE14DAEAB300259795 /* libBlocksKit.a */ = {
+		5BE352B71629FC5D00735736 /* libBlocksKit.a */ = {
 			isa = PBXReferenceProxy;
 			fileType = archive.ar;
 			path = libBlocksKit.a;
-			remoteRef = 5B3D46CD14DAEAB300259795 /* PBXContainerItemProxy */;
+			remoteRef = 5BE352B61629FC5D00735736 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
-		5B3D46D014DAEAB300259795 /* BlocksKit.dylib */ = {
+		5BE352B91629FC5D00735736 /* BlocksKit.framework */ = {
+			isa = PBXReferenceProxy;
+			fileType = wrapper.framework;
+			path = BlocksKit.framework;
+			remoteRef = 5BE352B81629FC5D00735736 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		5BE352BB1629FC5D00735736 /* BlocksKit.dylib */ = {
 			isa = PBXReferenceProxy;
 			fileType = "compiled.mach-o.dylib";
 			path = BlocksKit.dylib;
-			remoteRef = 5B3D46CF14DAEAB300259795 /* PBXContainerItemProxy */;
+			remoteRef = 5BE352BA1629FC5D00735736 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
-		5B3D46D214DAEAB300259795 /* BlocksKit_Chameleon.dylib */ = {
+		5BE352BD1629FC5D00735736 /* BlocksKit_Chameleon.dylib */ = {
 			isa = PBXReferenceProxy;
 			fileType = "compiled.mach-o.dylib";
 			path = BlocksKit_Chameleon.dylib;
-			remoteRef = 5B3D46D114DAEAB300259795 /* PBXContainerItemProxy */;
+			remoteRef = 5BE352BC1629FC5D00735736 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
-		5B3D46D414DAEAB300259795 /* iOS Tests.app */ = {
+		5BE352BF1629FC5D00735736 /* iOS Tests.app */ = {
 			isa = PBXReferenceProxy;
 			fileType = wrapper.application;
 			path = "iOS Tests.app";
-			remoteRef = 5B3D46D314DAEAB300259795 /* PBXContainerItemProxy */;
+			remoteRef = 5BE352BE1629FC5D00735736 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
 /* End PBXReferenceProxy section */
@@ -394,16 +394,19 @@
 				5BF7883E14DB024A00915D49 /* EnumPickerVC.m in Sources */,
 				5BF7884314DB0E1900915D49 /* ServerListVC.m in Sources */,
 				5BF7884914DB179E00915D49 /* AddServerVC.m in Sources */,
+				5BE352C7162AD1FE00735736 /* ProfilesVC.m in Sources */,
+				5BE35303162ADE7400735736 /* AddProfileVC.m in Sources */,
+				5BE35306162B067700735736 /* FeaturePickerVC.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		5BF7883814DAED9D00915D49 /* PBXTargetDependency */ = {
+		5BE352C11629FC7900735736 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			name = "iOS Library";
-			targetProxy = 5BF7883714DAED9D00915D49 /* PBXContainerItemProxy */;
+			name = "iOS Framework";
+			targetProxy = 5BE352C01629FC7900735736 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 

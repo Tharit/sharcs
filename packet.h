@@ -26,6 +26,9 @@
 #define bswap_16(x) OSSwapInt16(x)
 
 #else
+
+#include <byteswap.h>
+
 #ifndef HAVE_BYTE_SWAP_H
 # ifndef bswap_64
 extern unsigned long long bswap_64(unsigned long long v);

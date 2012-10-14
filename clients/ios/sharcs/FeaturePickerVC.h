@@ -16,8 +16,12 @@
 
 #import <UIKit/UIKit.h>
 
-@interface AddServerVC : UITableViewController
+typedef void (^FeaturePickerVCSelectBlock)(NSInteger featureId);
+typedef BOOL (^FeaturePickerVCFilterBlock)(NSInteger featureId);
 
-@property (strong,nonatomic) IBOutlet UITextField *nameInput, *addressInput;
+@interface FeaturePickerVC : UITableViewController
+
+- (void)setTask:(FeaturePickerVCSelectBlock)task;
+- (void)setFilter:(FeaturePickerVCFilterBlock)filter;
 
 @end

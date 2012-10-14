@@ -14,7 +14,7 @@ int sharcs_set_s(sharcs_id feature,const char* value);
 /* profiles */
 int sharcs_enumerate_profiles(struct sharcs_profile **profile,int index);
 
-int sharcs_profile_save(const char *name);
+int sharcs_profile_save(struct sharcs_profile *profile);
 int sharcs_profile_load(int profile_id);
 int sharcs_profile_delete(int profile_id);
 

@@ -45,10 +45,13 @@ time_t lastPing,lastPong;
 
 int (*sharcs_callback_i)(sharcs_id,int);
 int (*sharcs_callback_s)(sharcs_id,const char*);
-void (*sharcs_callback_retrieve)(int);
+void (*sharcs_callback)(int,int,int);
 
 struct sharcs_module *modules = NULL;
 int numModules = 0;
+
+struct sharcs_profile **profiles = NULL;
+int profiles_size = 0;
 
 void handlePacket(struct sharcs_packet *p);
 void readFromSocket();
@@ -56,6 +59,9 @@ void writeToSocket();
 void sendPacket(struct sharcs_packet *p);
 void wakeUp();
 void* run(void *threadid);
+void updateFeatureI(sharcs_id id,int v);
+void updateFeatureS(sharcs_id id,const char *v);
+
 
 void readFromSocket() {
 	int nBytes = recv(clientSocket, readBuffer + readCounter, readBufferSize - readCounter, 0);
@@ -219,6 +225,41 @@ void* run(void *threadid) {
 }
 
 
+void updateFeatureI(sharcs_id id,int v) {
+    struct sharcs_feature *feature;
+    
+	/* update data structures */
+	feature = sharcs_feature(id);
+	if(feature) {
+		switch(feature->feature_type) {
+		case SHARCS_FEATURE_ENUM:
+			feature->feature_value.v_enum.value = v;
+			break;
+		case SHARCS_FEATURE_SWITCH:
+			feature->feature_value.v_switch.state = v;
+			
+			if(feature->feature_flags & SHARCS_FLAG_POWER) {
+				if(!v) {
+					sharcs_device(id)->device_flags |= SHARCS_FLAG_STANDBY;
+				} else {
+					sharcs_device(id)->device_flags &= ~SHARCS_FLAG_STANDBY;
+				}
+			}
+			
+			break;
+		case SHARCS_FEATURE_RANGE:
+			feature->feature_value.v_range.value = v;
+			break;
+		}
+	}
+	
+	sharcs_callback_i(id,v);
+}
+
+void updateFeatureS(sharcs_id id,const char *v) {
+	sharcs_callback_s(id,v);
+}
+
 
 void handlePacket(struct sharcs_packet *p) {
 	int packetLen, packetType;
@@ -250,38 +291,12 @@ void handlePacket(struct sharcs_packet *p) {
 			break;
 		}
 		case M_S_FEATURE_I: {
-			struct sharcs_feature *feature;
 			int f,v;
 			
 			f = packet_read32(p);
 			v = packet_read32(p);
 			
-			/* update data structures */
-			feature = sharcs_feature(f);
-			if(feature) {
-				switch(feature->feature_type) {
-				case SHARCS_FEATURE_ENUM:
-					feature->feature_value.v_enum.value = v;
-					break;
-				case SHARCS_FEATURE_SWITCH:
-					feature->feature_value.v_switch.state = v;
-					
-					if(feature->feature_flags & SHARCS_FLAG_POWER) {
-						if(!v) {
-							sharcs_device(f)->device_flags |= SHARCS_FLAG_STANDBY;
-						} else {
-							sharcs_device(f)->device_flags &= ~SHARCS_FLAG_STANDBY;
-						}
-					}
-					
-					break;
-				case SHARCS_FEATURE_RANGE:
-					feature->feature_value.v_range.value = v;
-					break;
-				}
-			}
-			
-			sharcs_callback_i(f,v);
+			updateFeatureI(f,v);
 			break;
 		}
 		case M_S_FEATURE_S: {
@@ -290,17 +305,17 @@ void handlePacket(struct sharcs_packet *p) {
 			f = packet_read32(p);
 			s = packet_read_string(p);
 			
-			sharcs_callback_s(f,s);
+			updateFeatureS(f,s);
 			break;
 		}
         case M_S_UPDATE: {
             int i,n,f,v;
 			
             n = packet_read32(p);
-            for(i=0;i<n;i++) {
+			for(i=0;i<n;i++) {
                 f = packet_read32(p);
                 v = packet_read32(p);
-			    sharcs_callback_i(f,v);
+				updateFeatureI(f,v);
             }
             
             break;
@@ -379,19 +394,144 @@ void handlePacket(struct sharcs_packet *p) {
 				}
 			}
 			
-			if(sharcs_callback_retrieve) {
-				sharcs_callback_retrieve(1);
+			if(sharcs_callback) {
+				sharcs_callback(LIBSHARCS_EVENT_RETRIEVE,0,0);
+			}
+			
+			break;
+		}
+		case M_S_PROFILES: {
+			int n,i,j;
+			struct sharcs_profile *profile;
+			
+			// server sent profiles again.. delete current list
+			if(profiles) {
+				for(i=0;i<profiles_size;i++) {
+					free((void*)profiles[i]->profile_name);
+					free(profiles[i]->profile_features);
+					free(profiles[i]->profile_values);
+					free(profiles[i]);
+				}
+				free(profiles);
+			}
+			
+			n = packet_read8(p);
+			
+			profiles = (struct sharcs_profile**)malloc(sizeof(struct sharcs_profile*)*n);
+			
+			for(i=0;i<n;i++) {
+				profile = (struct sharcs_profile*)malloc(sizeof(struct sharcs_profile));
+				profile->profile_id 			= packet_read32(p);
+				profile->profile_name 			= strdup(packet_read_string(p));
+				profile->profile_size			= packet_read32(p);
+				profile->profile_features 		= (int*)malloc(sizeof(int)*profile->profile_size);
+				profile->profile_values 		= (int*)malloc(sizeof(int)*profile->profile_size);
+
+				for(j=0;j<profile->profile_size;j++) {
+					profile->profile_features[j] 	= packet_read32(p);
+					profile->profile_values[j] 		= packet_read32(p);
+				}
+				
+				profiles[i] = profile;
+			}
+			
+			profiles_size = n;
+			
+			if(sharcs_callback) {
+				sharcs_callback(LIBSHARCS_EVENT_PROFILES,0,0);
 			}
 			
 			break;
 		}
 		case M_S_PROFILE_LOAD: {
+			int id,state;
+
+			id 		= packet_read32(p);
+			state 	= packet_read32(p);
+			
+			if(sharcs_callback) {
+				sharcs_callback(LIBSHARCS_EVENT_PROFILE_LOAD,id,state);
+			}
+			
 			break;
 		}
 		case M_S_PROFILE_SAVE: {
+			int id,i,index;
+			char updated;
+			struct sharcs_profile *profile;
+			
+			id = packet_read32(p);
+			
+			/* update or add profile */
+			updated = 0;
+			for(i=0;i<profiles_size;i++) {
+				if(profiles[i]->profile_id == id) {
+					index = i;
+					updated = 1;
+					
+					/* delete old profile */
+					free((void*)profiles[i]->profile_name);
+					free(profiles[i]->profile_features);
+					free(profiles[i]->profile_values);
+					free(profiles[i]);
+					
+					break;
+				}
+			}
+			if(!updated) {
+				index = profiles_size;
+				profiles_size++;
+				profiles = (struct sharcs_profile**)realloc(profiles,sizeof(struct sharcs_profile*)*profiles_size);
+			}
+			
+			/* read profile from packet */
+			profile = (struct sharcs_profile*)malloc(sizeof(struct sharcs_profile));
+			profile->profile_id 			= id;
+			profile->profile_name 			= strdup(packet_read_string(p));
+			profile->profile_size			= packet_read32(p);
+			profile->profile_features 		= (int*)malloc(sizeof(int)*profile->profile_size);
+			profile->profile_values 		= (int*)malloc(sizeof(int)*profile->profile_size);
+			
+			for(i=0;i<profile->profile_size;i++) {
+				profile->profile_features[i] 	= packet_read32(p);
+				profile->profile_values[i] 		= packet_read32(p);
+			}
+			profiles[index] = profile;
+			
+			if(sharcs_callback) {
+				sharcs_callback(LIBSHARCS_EVENT_PROFILE_SAVE,id,0);
+			}
+			
 			break;			
 		}
 		case M_S_PROFILE_DELETE: {
+			int id,i;
+			
+			id = packet_read32(p);
+			
+			for(i=0;i<profiles_size;i++) {
+				if(profiles[i]->profile_id == id) {
+					/* delete old profile */
+					free((void*)profiles[i]->profile_name);
+					free(profiles[i]->profile_features);
+					free(profiles[i]->profile_values);
+					free(profiles[i]);
+					
+					profiles_size--;
+					for(;i<profiles_size;i++) {
+						profiles[i] = profiles[i+1];
+					}
+					
+					profiles = (struct sharcs_profile**)realloc(profiles,sizeof(struct sharcs_profile*)*profiles_size);
+					
+					break;
+				}
+			}
+			
+			if(sharcs_callback) {
+				sharcs_callback(LIBSHARCS_EVENT_PROFILE_DELETE,id,0);
+			}
+			
 			break;
 		}
 		default: {
@@ -409,10 +549,12 @@ void handlePacket(struct sharcs_packet *p) {
  */
 int sharcs_init(const char *server,
                 int (*callback_i)(sharcs_id,int),
-				int (*callback_s)(sharcs_id,const char*)) {
+				int (*callback_s)(sharcs_id,const char*),
+				void (*callback)(int,int,int)) {
 	
 	sharcs_callback_i = callback_i;
 	sharcs_callback_s = callback_s;
+	sharcs_callback = callback;
 					
 	/* try to connect */
 	struct sockaddr_in addr;
@@ -524,30 +666,112 @@ int sharcs_set_s(sharcs_id feature,const char* value) {
 
 /* profiles */
 int sharcs_enumerate_profiles(struct sharcs_profile **profile,int index) {
-	return 0;
+	if(index<0||index>=profiles_size) {
+		*profile = NULL;
+		return 0;
+	}
+	
+	*profile = profiles[index];
+	
+	return 1;
 }
 
-int sharcs_profile_save(const char *name) {
+int sharcs_profile_save(struct sharcs_profile *profile) {
+	struct sharcs_packet *p;
+	int j;
+	
+	p = packet_create();
+	packet_append32(p,0);
+	packet_append8(p,M_C_PROFILE_SAVE);
+	
+	packet_append32(p,profile->profile_id);
+	
+	packet_append_string(p,profile->profile_name);
+	
+	packet_append32(p,profile->profile_size);
+	for(j=0;j<profile->profile_size;j++) {
+		packet_append32(p,profile->profile_features[j]);
+		packet_append32(p,profile->profile_values[j]);
+	}
+	
+	sendPacket(p);
+	
+	wakeUp();
+	
+	packet_delete(p);
+	
 	return 0;
 }
 
 int sharcs_profile_load(int profile_id) {
-	return 0;
-}
-
-int sharcs_profile_delete(int profile_id) {
-	return 0;
-}
-
-/* enumeration */
-int sharcs_retrieve(void (*cb)(int)) {
 	struct sharcs_packet *p;
     
     if(clientSocket<0) {
         return 0;
     }
 	
-	sharcs_callback_retrieve = cb;
+	p = packet_create();
+    packet_append32(p,0);
+    packet_append8(p,M_C_PROFILE_LOAD);
+	packet_append32(p,profile_id);
+	
+	sendPacket(p);
+	
+	wakeUp();
+	
+	packet_delete(p);
+    
+	return 1;
+}
+
+int sharcs_profile_delete(int profile_id) {
+	struct sharcs_packet *p;
+    
+    if(clientSocket<0) {
+        return 0;
+    }
+	
+	p = packet_create();
+    packet_append32(p,0);
+    packet_append8(p,M_C_PROFILE_DELETE);
+	packet_append32(p,profile_id);
+	
+	sendPacket(p);
+	
+	wakeUp();
+	
+	packet_delete(p);
+    
+	return 1;
+}
+
+/* enumeration */
+int sharcs_profiles() {
+	struct sharcs_packet *p;
+    
+    if(clientSocket<0) {
+        return 0;
+    }
+	
+    p = packet_create();
+    packet_append32(p,0);
+    packet_append8(p,M_C_PROFILES);    
+    
+	sendPacket(p);
+	
+	wakeUp();
+	
+	packet_delete(p);
+    
+    return 1;
+}
+
+int sharcs_retrieve() {
+	struct sharcs_packet *p;
+    
+    if(clientSocket<0) {
+        return 0;
+    }
 	
     p = packet_create();
     packet_append32(p,0);
@@ -629,5 +853,11 @@ struct sharcs_feature* sharcs_feature(sharcs_id id) {
 }
 
 struct sharcs_profile* sharcs_profile(int id) {
-	/* @TODO profiles */
+	int i;
+	for(i=0;i<profiles_size;i++) {
+		if(profiles[i]->profile_id == id) {
+			return profiles[i];
+		}
+	}
+	return NULL;
 }

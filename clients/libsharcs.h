@@ -16,13 +16,23 @@
 
 #include "../sharcs.h"
 
-int sharcs_init(const char* server,int (*)(sharcs_id,int),int (*)(sharcs_id,const char*));
+enum {
+	LIBSHARCS_EVENT_RETRIEVE,
+	LIBSHARCS_EVENT_PROFILES,
+	LIBSHARCS_EVENT_PROFILE_DELETE,
+	LIBSHARCS_EVENT_PROFILE_SAVE,
+	LIBSHARCS_EVENT_PROFILE_LOAD,
+};
+
+int sharcs_init(const char* server,int (*)(sharcs_id,int),int (*)(sharcs_id,const char*),void (*)(int,int,int));
 int sharcs_stop();
 
 /* enumeration */
-int sharcs_retrieve(void (*)(int));
+int sharcs_retrieve();
+int sharcs_profiles();
 
 int sharcs_enumerate_modules(struct sharcs_module **module,int index);
+int sharcs_enumerate_profiles(struct sharcs_profile **profile,int index);
 
 struct sharcs_module* sharcs_module(sharcs_id id);
 struct sharcs_device* sharcs_device(sharcs_id id);
@@ -34,8 +44,6 @@ int sharcs_set_i(sharcs_id,int);
 int sharcs_set_s(sharcs_id,const char*);
 
 /* profiles */
-int sharcs_enumerate_profiles(struct sharcs_profile **profile,int index);
-
-int sharcs_profile_save(const char *name);
+int sharcs_profile_save(struct sharcs_profile *profile);
 int sharcs_profile_load(int profile_id);
 int sharcs_profile_delete(int profile_id);

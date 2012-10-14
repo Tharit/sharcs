@@ -1,0 +1,3 @@
+http://code.google.com/p/c200remote/source/browse/trunk/src/webui/webrc200.php
+
+standby.sh script writes info to file and triggers module

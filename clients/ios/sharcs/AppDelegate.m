@@ -1,10 +1,18 @@
-//
-//  AppDelegate.m
-//  sharcs
-//
-//  Created by Martin Kleinhans on 02.02.12.
-//  Copyright (c) 2012 __MyCompanyName__. All rights reserved.
-//
+/*
+ * Copyright (c) 2012 Martin Kleinhans <mail@mkleinhans.de>
+ *
+ * Permission to use, copy, modify, and distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ */
 
 #import "AppDelegate.h"
 #import "NSNotificationCenter+Additions.h"
@@ -12,18 +20,11 @@
 #include "libsharcs.h"
 
 BOOL g_devicesAvailable = NO;
+BOOL g_profilesAvailable = NO;
 
 int callback_feature_i(sharcs_id feature, int value);
 int callback_feature_s(sharcs_id feature, const char* value);
-void callback_retrieve(int success);
-
-void callback_retrieve(int success) {
-    g_devicesAvailable = YES;
-    @autoreleasepool {
-        [[NSNotificationCenter defaultCenter] postNotificationOnMainThreadWithName:@"SHARCSRetrieve" 
-                                                                            object:nil];
-    }
-}
+void callback_event(int event, int v1, int v2);
 
 int callback_feature_i(sharcs_id feature, int value) {
     @autoreleasepool {
@@ -39,7 +40,7 @@ int callback_feature_i(sharcs_id feature, int value) {
 
 int callback_feature_s(sharcs_id feature, const char* value) {
     @autoreleasepool {
-        [[NSNotificationCenter defaultCenter] postNotificationOnMainThreadWithName:@"SHARCSRetrieve" 
+        [[NSNotificationCenter defaultCenter] postNotificationOnMainThreadWithName:@"SHARCSFeatureS" 
                                                                             object:nil 
                                                                           userInfo:[NSDictionary dictionaryWithObjectsAndKeys:
                                                                                     [NSString stringWithCString:value encoding:NSASCIIStringEncoding],@"value",
@@ -47,6 +48,39 @@ int callback_feature_s(sharcs_id feature, const char* value) {
                                                                                     nil]];
     }
     return 0;
+}
+
+void callback_event(int event, int v1, int v2) {
+	switch(event) {
+		case LIBSHARCS_EVENT_RETRIEVE:
+			g_devicesAvailable = YES;
+			[[NSNotificationCenter defaultCenter] postNotificationOnMainThreadWithName:@"SHARCSRetrieve"
+																				object:nil];
+			break;
+		case LIBSHARCS_EVENT_PROFILES:
+			g_profilesAvailable = YES;
+			[[NSNotificationCenter defaultCenter] postNotificationOnMainThreadWithName:@"SHARCSProfiles"
+																				object:nil];
+			break;
+		case LIBSHARCS_EVENT_PROFILE_LOAD:
+			[[NSNotificationCenter defaultCenter] postNotificationOnMainThreadWithName:@"SHARCSProfileLoad"
+																				object:[NSDictionary dictionaryWithObjectsAndKeys:
+																						[NSNumber numberWithInt:v1],@"id",
+																						nil]];
+			break;
+		case LIBSHARCS_EVENT_PROFILE_DELETE:
+			[[NSNotificationCenter defaultCenter] postNotificationOnMainThreadWithName:@"SHARCSProfileDelete"
+																				object:[NSDictionary dictionaryWithObjectsAndKeys:
+																						[NSNumber numberWithInt:v1],@"id",
+																						nil]];
+			break;
+		case LIBSHARCS_EVENT_PROFILE_SAVE:
+			[[NSNotificationCenter defaultCenter] postNotificationOnMainThreadWithName:@"SHARCSProfileSave"
+																				object:[NSDictionary dictionaryWithObjectsAndKeys:
+																						[NSNumber numberWithInt:v1],@"id",
+																						nil]];
+			break;
+	}
 }
 
 @interface AppDelegate (Private)
@@ -61,8 +95,9 @@ int callback_feature_s(sharcs_id feature, const char* value) {
         return;
     }
     
-    sharcs_init([server cStringUsingEncoding:NSASCIIStringEncoding],&callback_feature_i,&callback_feature_s);
-    sharcs_retrieve(&callback_retrieve);
+    sharcs_init([server cStringUsingEncoding:NSASCIIStringEncoding],&callback_feature_i,&callback_feature_s,&callback_event);
+    sharcs_retrieve();
+	sharcs_profiles();
 }
 
 - (void)disconnect {
@@ -81,6 +116,10 @@ int callback_feature_s(sharcs_id feature, const char* value) {
 
 - (BOOL) devicesAvailable {
     return g_devicesAvailable;
+}
+
+- (BOOL) profilesAvailable {
+    return g_profilesAvailable;
 }
 
 - (void)selectServer:(NSString*)s {

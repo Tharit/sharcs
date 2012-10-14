@@ -16,8 +16,8 @@
 
 #import <UIKit/UIKit.h>
 
-@interface AddServerVC : UITableViewController
-
-@property (strong,nonatomic) IBOutlet UITextField *nameInput, *addressInput;
+@interface ProfilesVC : UITableViewController {
+	NSMutableArray *profiles;
+}
 
 @end

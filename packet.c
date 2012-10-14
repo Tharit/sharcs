@@ -21,6 +21,8 @@
 
 #include "packet.h"
 
+/* @TODO: swap depending on host endianess.. hton etc */
+
 #ifndef __APPLE__
 
 #ifndef HAVE_BYTE_SWAP_H

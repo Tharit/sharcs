@@ -139,6 +139,8 @@ static const char* enum_dimmer_names[] = {
 void av_callback(int cmd, int v) {
 	int *e;
 	
+	e = NULL;
+	
 	if(cmd == AV_CMD_MODE) {
 		e = enum_mode;
 	} else if(cmd == AV_CMD_INPUT) {
@@ -162,6 +164,8 @@ void av_callback(int cmd, int v) {
 
 void *module_thread(void *threadid) {
 	int ret;
+	
+	ret = 1;
 	
 	while(!thread_stop && (ret=av_main())) {
 	}

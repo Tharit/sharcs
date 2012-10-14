@@ -21,4 +21,6 @@ int sharcs_connection_start();
 int sharcs_connection_stop();
 int sharcs_connection_feature(sharcs_id feature);
 
+int sharcs_connection_profile(int profile_id, int state);
+
 #endif

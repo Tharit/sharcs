@@ -1,10 +1,18 @@
-//
-//  DevicesVC.m
-//  sharcs
-//
-//  Created by Martin Kleinhans on 02.02.12.
-//  Copyright (c) 2012 __MyCompanyName__. All rights reserved.
-//
+/*
+ * Copyright (c) 2012 Martin Kleinhans <mail@mkleinhans.de>
+ *
+ * Permission to use, copy, modify, and distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ */
 
 #import "DevicesVC.h"
 #import "AppDelegate.h"
@@ -117,10 +125,12 @@
 		}
 	}
     
-    CGFloat offset = self.tableView.contentOffset.y;
+    if([self isViewLoaded]) {
+		CGFloat offset = self.tableView.contentOffset.y;
     
-    [self.tableView reloadData];
-    self.tableView.contentOffset = CGPointMake(0,offset);
+		[self.tableView reloadData];
+		self.tableView.contentOffset = CGPointMake(0,offset);
+	}
 }
 
 @end
@@ -160,7 +170,7 @@
         EnumPickerVC *vc = [segue destinationViewController];
         
         // Pass any objects to the view controller here, like...
-        [vc setFeature:((UIView*)sender).tag];
+        [vc setFeature:((UIView*)sender).tag task:nil];
     }
 }
 

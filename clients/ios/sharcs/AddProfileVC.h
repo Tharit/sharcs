@@ -16,8 +16,8 @@
 
 #import <UIKit/UIKit.h>
 
-@interface AddServerVC : UITableViewController
+@interface AddProfileVC : UITableViewController<UITextFieldDelegate>
 
-@property (strong,nonatomic) IBOutlet UITextField *nameInput, *addressInput;
+- (void)setProfileId:(NSInteger)profileId;
 
 @end

@@ -34,10 +34,14 @@
 #include "connections.h"
 #include "../packet.h"
 
+#define SHARCS_CF_PROFILES 1
+#define SHARCS_CF_MODULES 2
+
 struct sharcs_connection {
 	unsigned int id;
 	int connected;
 	int socket;
+	int flags;
 	char *writeBuffer,*readBuffer;
 	int readCounter, writeCounter, writeBufferSize, readBufferSize;
 	time_t lastPing,lastPong;
@@ -48,7 +52,7 @@ int serverSocket;
 int pipeFD[2];
 int stopEvent;
 struct sharcs_connection connections[10];
-pthread_mutex_t mutex_connections = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutex_connections;
 
 void handlePacket(struct sharcs_connection *con, struct sharcs_packet *p);
 
@@ -161,6 +165,22 @@ void sendPacket(struct sharcs_connection *con, struct sharcs_packet *p) {
 	con->writeCounter += len;
 }
 
+void distributePacket(struct sharcs_packet *p,int flags) {
+	struct sharcs_connection *connection;
+	int i;
+	
+	pthread_mutex_lock(&mutex_connections);
+	for(i=0;i<10;i++) {
+		connection = &connections[i];
+		if(!connection->connected || (flags && !(connection->flags & flags))) {
+			continue;
+		}
+
+		sendPacket(connection,p);
+	}
+	pthread_mutex_unlock(&mutex_connections);
+}
+
 void wakeUp() {
 	write(pipeFD[1], ".", 1);
 }
@@ -194,7 +214,7 @@ void handlePacket(struct sharcs_connection *con, struct sharcs_packet *p) {
 			f = packet_read32(p);
 			v = packet_read32(p);
 			
-			if(!sharcs_set_i(f,v)) {
+			if(sharcs_set_i(f,v)!=1) {
 				/* @TODO include reason for failure, and add request id's */
 				p2 = packet_create();
 				packet_append32(p2,0);
@@ -283,6 +303,10 @@ void handlePacket(struct sharcs_connection *con, struct sharcs_packet *p) {
 			
 			int i,j,k,l;
 			
+			if(!(con->flags & SHARCS_CF_MODULES)) {
+				con->flags |= SHARCS_CF_MODULES;
+			}
+			
 			/* enumerate modules */
 			p2 = packet_create();
 			packet_append32(p2,0);
@@ -350,12 +374,137 @@ void handlePacket(struct sharcs_connection *con, struct sharcs_packet *p) {
 			break;
 		}
 		case M_C_PROFILE_LOAD: {
+			int id,ret;
+			
+			if(p->size < 4+1+4) {
+				return;
+			}
+			
+			id = packet_read32(p);
+			ret = sharcs_profile_load(id);
+			
+			/* action failed */
+			if(!ret) {
+				p2 = packet_create();
+				packet_append32(p2,0);
+				packet_append8(p2,M_S_PROFILE_LOAD);
+				packet_append32(p2,id);
+				packet_append8(p2,SHARCS_PROFILE_FAILED);
+				sendPacket(con,p2);
+				packet_delete(p2);
+			}
+			
+			break;
+		}
+		case M_C_PROFILES: {
+			struct sharcs_profile *profile;
+			int i,j;
+			
+			if(!(con->flags & SHARCS_CF_PROFILES)) {
+				con->flags |= SHARCS_CF_PROFILES;
+			}
+			
+			/* enumerate modules */
+			p2 = packet_create();
+			packet_append32(p2,0);
+			packet_append8(p2,M_S_PROFILES);
+			packet_append8(p2,0);
+			
+			i = 0;
+			while(sharcs_enumerate_profiles(&profile,i++)) {
+				packet_append32(p2,profile->profile_id);
+				packet_append_string(p2,profile->profile_name);
+
+				packet_append32(p2,profile->profile_size);
+				for(j=0;j<profile->profile_size;j++) {
+					packet_append32(p2,profile->profile_features[j]);
+					packet_append32(p2,profile->profile_values[j]);
+				}
+			}
+
+			/* update number of modules */
+			packet_seek(p2,5);
+			packet_append8(p2,i-1);
+
+			/* send packet */
+			sendPacket(con,p2);
+			packet_delete(p2);
+			
 			break;
 		}
 		case M_C_PROFILE_SAVE: {
+			struct sharcs_profile *profile;
+			int ret,j;
+			
+			profile = (struct sharcs_profile*)malloc(sizeof(struct sharcs_profile));
+			profile->profile_id 			= packet_read32(p);
+			profile->profile_name 			= strdup(packet_read_string(p));
+			profile->profile_size			= packet_read32(p);
+			profile->profile_features 		= (int*)malloc(sizeof(int)*profile->profile_size);
+			profile->profile_values 		= (int*)malloc(sizeof(int)*profile->profile_size);
+			
+			for(j=0;j<profile->profile_size;j++) {
+				profile->profile_features[j] 	= packet_read32(p);
+				profile->profile_values[j] 		= packet_read32(p);
+			}
+			
+			ret = sharcs_profile_save(profile);
+			
+			p2 = packet_create();
+			packet_append32(p2,0);
+			packet_append8(p2,M_S_PROFILE_SAVE);
+			
+			/* action failed */
+			if(!ret) {
+				free((void*)profile->profile_name);
+				free(profile->profile_features);
+				free(profile->profile_values);
+				free(profile);
+
+				packet_append32(p2,0);
+				sendPacket(con,p2);
+			/* success */
+			} else {
+				packet_append32(p2,profile->profile_id);
+			
+				packet_append_string(p2,profile->profile_name);
+
+				packet_append32(p2,profile->profile_size);
+				for(j=0;j<profile->profile_size;j++) {
+					packet_append32(p2,profile->profile_features[j]);
+					packet_append32(p2,profile->profile_values[j]);
+				}
+			
+				distributePacket(p2,SHARCS_CF_PROFILES);
+			}
+			
+			packet_delete(p2);
+						
 			break;			
 		}
 		case M_C_PROFILE_DELETE: {
+			int ret,j,id;
+			
+			id = packet_read32(p);
+			ret = sharcs_profile_delete(id);
+			
+			p2 = packet_create();
+			packet_append32(p2,0);
+			packet_append8(p2,M_S_PROFILE_DELETE);
+			
+			/* deletion failed */
+			if(!ret) {
+				packet_append32(p2,0);
+				sendPacket(con,p2);
+			/* successfully deleted profile => notify clients */
+			} else {
+				packet_append32(p2,id);
+				
+				distributePacket(p2,SHARCS_CF_PROFILES);
+			}
+			
+			packet_delete(p2);
+			
 			break;
 		}
 		default: {
@@ -385,9 +534,15 @@ int sharcs_connection_start() {
 	struct sockaddr_in addr;
 	struct sharcs_packet *p;
 	
+	pthread_mutexattr_t attr;
+	
 	socklen_t len = sizeof(addr);
 	
 	/* initialize variables */
+	pthread_mutexattr_init(&attr); 
+	pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE); 
+	pthread_mutex_init(&mutex_connections, &attr);
+	
 	stopEvent = 0;
 	for(i=0;i<10;i++) {
 		connections[i].connected = 0;
@@ -510,7 +665,9 @@ int sharcs_connection_start() {
 						connection->socket 		= accept(serverSocket, (struct sockaddr *)&addr, &len);;
 						connection->lastPing	= 
 						connection->lastPong 	= time(NULL);
-
+					
+						connection->flags = 0;
+						
 					    connection->writeCounter   	= 0;
 					    connection->readCounter    	= 0;
 					    connection->readBufferSize 	=
@@ -588,6 +745,38 @@ int sharcs_connection_start() {
 	return 1;
 }
 
+int sharcs_connection_profile(int profile_id, int state) {
+	struct sharcs_connection *connection;
+	struct sharcs_profile *profile;
+	struct sharcs_packet *p;
+	int i;
+	
+	profile = sharcs_profile(profile_id);
+	if(!profile) {
+		return 0;
+	}
+	
+	p = packet_create();
+	packet_append32(p,0);
+	packet_append8(p,M_S_PROFILE_LOAD);
+	packet_append32(p,profile_id);
+	packet_append8(p,state);
+	
+	pthread_mutex_lock(&mutex_connections);
+	for(i=0;i<10;i++) {
+		connection = &connections[i];
+		if(!connection->connected) {
+			continue;
+		}
+		sendPacket(connection,p);
+	}
+	pthread_mutex_unlock(&mutex_connections);
+	
+	wakeUp();
+	
+	packet_delete(p);
+}
+
 int sharcs_connection_feature(sharcs_id feature) {
 	struct sharcs_connection *connection;
 	struct sharcs_packet *p;
@@ -620,16 +809,7 @@ int sharcs_connection_feature(sharcs_id feature) {
 			break;
 	}
 	
-	pthread_mutex_lock(&mutex_connections);
-	for(i=0;i<10;i++) {
-		connection = &connections[i];
-		if(!connection->connected) {
-			continue;
-		}
-
-		sendPacket(connection,p);
-	}
-	pthread_mutex_unlock(&mutex_connections);
+	distributePacket(p,0);
 	
 	wakeUp();
 	

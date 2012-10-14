@@ -22,6 +22,11 @@ enum {
 #define SHARCS_ID_DEVICE_MAKE(m,d) ((SHARCS_DEVICE<<24)+(m&0x00FF0000)+(d<<8))
 #define SHARCS_ID_FEATURE_MAKE(m,d,f) ((SHARCS_FEATURE<<24)+(m&0x00FF0000)+(d&0x0000FF00)+f)
 
+#define SHARCS_V_ENUM(f) f->feature_value.v_enum.value
+#define SHARCS_VS_ENUM(f) f->feature_value.v_enum.values[f->feature_value.v_enum.value]
+#define SHARCS_V_SWITCH(f) f->feature_value.v_switch.state
+#define SHARCS_V_RANGE(f) f->feature_value.v_range.value
+
 /*
  * packets
  */
@@ -37,6 +42,7 @@ enum {
 	M_S_PROFILE_LOAD,
 	M_S_PROFILE_SAVE,
 	M_S_PROFILE_DELETE,
+	M_S_PROFILES,
 };
 
 enum {
@@ -49,6 +55,7 @@ enum {
 	M_C_PROFILE_LOAD,
 	M_C_PROFILE_SAVE,
 	M_C_PROFILE_DELETE,
+	M_C_PROFILES,
 };
 
 /*
@@ -149,8 +156,14 @@ struct sharcs_module {
 /**
  * profiles
  */
+enum {
+	SHARCS_PROFILE_LOADING,
+	SHARCS_PROFILE_FAILED,
+	SHARCS_PROFILE_LOADED,
+};
+
 struct sharcs_profile {
-	int profile_id;
+	unsigned int profile_id;
 	
 	const char *profile_name;
 	
