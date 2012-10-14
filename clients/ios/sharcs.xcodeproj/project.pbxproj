@@ -30,6 +30,7 @@
 		5BE352C7162AD1FE00735736 /* ProfilesVC.m in Sources */ = {isa = PBXBuildFile; fileRef = 5BE352C6162AD1FE00735736 /* ProfilesVC.m */; };
 		5BE35303162ADE7400735736 /* AddProfileVC.m in Sources */ = {isa = PBXBuildFile; fileRef = 5BE35302162ADE7400735736 /* AddProfileVC.m */; };
 		5BE35306162B067700735736 /* FeaturePickerVC.m in Sources */ = {isa = PBXBuildFile; fileRef = 5BE35305162B067700735736 /* FeaturePickerVC.m */; };
+		5BE35308162B2A3600735736 /* Default-568h@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 5BE35307162B2A3600735736 /* Default-568h@2x.png */; };
 		5BF7883B14DAEE0000915D49 /* MessageUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5BF7883A14DAEE0000915D49 /* MessageUI.framework */; };
 		5BF7883E14DB024A00915D49 /* EnumPickerVC.m in Sources */ = {isa = PBXBuildFile; fileRef = 5BF7883D14DB024A00915D49 /* EnumPickerVC.m */; };
 		5BF7884014DB09E100915D49 /* Default.png in Resources */ = {isa = PBXBuildFile; fileRef = 5BF7883F14DB09E100915D49 /* Default.png */; };
@@ -118,6 +119,7 @@
 		5BE35302162ADE7400735736 /* AddProfileVC.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AddProfileVC.m; sourceTree = "<group>"; };
 		5BE35304162B067600735736 /* FeaturePickerVC.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FeaturePickerVC.h; sourceTree = "<group>"; };
 		5BE35305162B067700735736 /* FeaturePickerVC.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FeaturePickerVC.m; sourceTree = "<group>"; };
+		5BE35307162B2A3600735736 /* Default-568h@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Default-568h@2x.png"; sourceTree = "<group>"; };
 		5BF7883A14DAEE0000915D49 /* MessageUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MessageUI.framework; path = System/Library/Frameworks/MessageUI.framework; sourceTree = SDKROOT; };
 		5BF7883C14DB024A00915D49 /* EnumPickerVC.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EnumPickerVC.h; sourceTree = "<group>"; };
 		5BF7883D14DB024A00915D49 /* EnumPickerVC.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = EnumPickerVC.m; sourceTree = "<group>"; };
@@ -198,6 +200,7 @@
 		5B09F7B314DAD94600544196 /* Supporting Files */ = {
 			isa = PBXGroup;
 			children = (
+				5BE35307162B2A3600735736 /* Default-568h@2x.png */,
 				5B8858D014DB416400062FFC /* Icon.png */,
 				5B8858D114DB416400062FFC /* Icon@2x.png */,
 				5BF7883F14DB09E100915D49 /* Default.png */,
@@ -374,6 +377,7 @@
 				5BF7884014DB09E100915D49 /* Default.png in Resources */,
 				5B8858D214DB416400062FFC /* Icon.png in Resources */,
 				5B8858D314DB416400062FFC /* Icon@2x.png in Resources */,
+				5BE35308162B2A3600735736 /* Default-568h@2x.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
