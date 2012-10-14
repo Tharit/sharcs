@@ -25,6 +25,8 @@
 #define TAG_LABEL 2
 #define TAG_VALUE 1
 #define TAG_VALUE2 3
+#define TAG_DEVICE 4
+#define TAG_SLIDER_VALUE 5
 
 //------------------------------------------------------------
 
@@ -213,6 +215,11 @@
 	[self populate];
 }
 
+- (void)viewDidAppear:(BOOL)animated {
+	[super viewDidAppear:animated];
+	[self.tableView deselectRowAtIndexPath:self.tableView.indexPathForSelectedRow animated:YES];
+}
+
 - (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
 	return 2;
 }
@@ -234,6 +241,23 @@
 		return @"Details";
 	}
 	return @"Features";
+}
+
+- (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath {
+    // special cells
+	if(indexPath.section==0||indexPath.row == [features count]) {
+		return 44;
+	}
+	
+	// feature cells
+	struct sharcs_feature *f;
+    
+    f = ((FeatureInfo*)[features objectAtIndex:indexPath.row])->feature;
+    
+    if((f->feature_flags & SHARCS_FLAG_SLIDER) && f->feature_type == SHARCS_FEATURE_RANGE) {
+        return 88;
+    }
+    return 66;
 }
 
 - (UITableViewCell*)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
@@ -284,9 +308,15 @@
 	}
 	// feature cells
 	if(indexPath.section == 1 && indexPath.row != [features count]) {
+		struct sharcs_device *d;
+		
+		d = sharcs_device(SHARCS_ID_DEVICE(fi->feature->feature_id));
+		
 		cell.showsReorderControl = YES;
 		cell.tag = fi->feature->feature_id;
+		
 		((UILabel*)[cell viewWithTag:TAG_LABEL]).text = [NSString stringWithCString:fi->feature->feature_name encoding:NSASCIIStringEncoding];
+		((UILabel*)[cell viewWithTag:TAG_DEVICE]).text = [NSString stringWithCString:d->device_name encoding:NSASCIIStringEncoding];
 		
 		// set value view
 		switch (fi->feature->feature_type) {
@@ -305,7 +335,9 @@
 			case SHARCS_FEATURE_RANGE: {
 				if(fi->feature->feature_flags & SHARCS_FLAG_SLIDER) {
 					__weak UISlider *sliderView;
+					__weak UILabel *sliderValueView;
 					
+					sliderValueView = ((UILabel*)[cell viewWithTag:TAG_SLIDER_VALUE]);
 					sliderView = ((UISlider*)[cell viewWithTag:TAG_VALUE]);
 					sliderView.minimumValue = fi->feature->feature_value.v_range.start;
 					sliderView.maximumValue = fi->feature->feature_value.v_range.end;
@@ -315,6 +347,7 @@
 					} else {
 						sliderView.value = fi->value;
 					}
+					sliderValueView.text = [NSString stringWithFormat:@"%d",fi->value];
 					
 					[sliderView removeEventHandlersForControlEvents:UIControlEventValueChanged];
 					[sliderView addEventHandler:^(id sender) {
@@ -322,7 +355,13 @@
 						
 						if(sliderView.value != v) {
 							sliderView.value = v;
-						}						
+						}
+						
+						if(fi->feature->feature_flags & SHARCS_FLAG_INVERSE) {
+                            v = fi->feature->feature_value.v_range.end-v;
+                        }
+						sliderValueView.text = [NSString stringWithFormat:@"%d",v];
+						
 						fi->value = v;
 					} forControlEvents:UIControlEventValueChanged];
 					
@@ -331,7 +370,6 @@
 					
 					labelView = ((UILabel*)[cell viewWithTag:TAG_VALUE]);
 					labelView.text = [NSString stringWithFormat:@"%d",fi->value];
-					
 				}
 				
 				break;

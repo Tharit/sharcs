@@ -25,6 +25,7 @@
 #define TAG_LABEL 2
 #define TAG_VALUE 1
 #define TAG_VALUE2 3
+#define TAG_SLIDER_VALUE 5
 
 @interface DevicesVC (Private)
 - (void)internalInit;
@@ -70,25 +71,19 @@
                 }
                 case SHARCS_FEATURE_RANGE: {
                     if(f->feature_flags & SHARCS_FLAG_SLIDER) {                                
-                        UISlider *sliderView;
+                        UILabel *sliderValueView;
+						UISlider *sliderView;
                         sliderView = ((UISlider*)[cell viewWithTag:TAG_VALUE]);
+						sliderValueView = ((UILabel*)[cell viewWithTag:TAG_SLIDER_VALUE]);
                         if(!sliderView.tracking) {
                             if(f->feature_flags & SHARCS_FLAG_INVERSE) {
                                 sliderView.value = f->feature_value.v_range.end - value;
                             } else {
                                 sliderView.value = value;
                             }
+							sliderValueView.text = [NSString stringWithFormat:@"%d",value];
                         }
                     } else {
-                        /*
-                        UIStepper *stepperView;                               
-                        stepperView = ((UIStepper*)[cell viewWithTag:TAG_VALUE]);
-                        stepperView.value = value;
-                    
-                        UILabel *labelView;   
-                        labelView = ((UILabel*)[cell viewWithTag:TAG_VALUE2]);
-                        labelView.text = [NSString stringWithFormat:@"%d",value];
-                         */
                         UILabel *labelView;   
                         labelView = ((UILabel*)[cell viewWithTag:TAG_VALUE]);
                         labelView.text = [NSString stringWithFormat:@"%d",value];
@@ -210,6 +205,11 @@
     return d->device_features_size;
 }
 
+- (void)viewDidAppear:(BOOL)animated {
+	[super viewDidAppear:animated];
+	[self.tableView deselectRowAtIndexPath:self.tableView.indexPathForSelectedRow animated:YES];
+}
+
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
     NSString *cellIdentifier;
     struct sharcs_device *d;
@@ -286,8 +286,10 @@
             if(f->feature_flags & SHARCS_FLAG_SLIDER) {
 
                 __weak UISlider *sliderView;
+				__weak UILabel *sliderValueView;
                 __block int lastValue;
                 
+                sliderValueView = ((UILabel*)[cell viewWithTag:TAG_SLIDER_VALUE]);
                 sliderView = ((UISlider*)[cell viewWithTag:TAG_VALUE]);
                 sliderView.minimumValue = f->feature_value.v_range.start;
                 sliderView.maximumValue = f->feature_value.v_range.end;
@@ -297,7 +299,8 @@
                 } else {
                     sliderView.value = f->feature_value.v_range.value;
                 }
-                
+                sliderValueView.text = [NSString stringWithFormat:@"%d",f->feature_value.v_range.value];
+				
                 [sliderView removeEventHandlersForControlEvents:UIControlEventValueChanged];
                 [sliderView addEventHandler:^(id sender) {
                     int v = ceilf(sliderView.value);
@@ -312,6 +315,7 @@
                             v = f->feature_value.v_range.end-v;
                         }
                         sharcs_set_i(f->feature_id, v);
+						sliderValueView.text = [NSString stringWithFormat:@"%d",v];
                     }
                 } forControlEvents:UIControlEventValueChanged];
                 
@@ -331,28 +335,6 @@
                 } else {
                     labelView.alpha = 1.0f;
                 }
-
-                
-                /*
-                __weak UIStepper *stepperView;
-                __weak UILabel *labelView;   
-                
-                labelView = ((UILabel*)[cell viewWithTag:TAG_VALUE2]);
-                labelView.text = [NSString stringWithFormat:@"%d",f->feature_value.v_range.value];
-                
-                stepperView = ((UIStepper*)[cell viewWithTag:TAG_VALUE]);
-                stepperView.minimumValue = f->feature_value.v_range.start;
-                stepperView.maximumValue = f->feature_value.v_range.end;
-                stepperView.stepValue = 1;
-                stepperView.value = f->feature_value.v_range.value;
-                
-                [stepperView removeEventHandlersForControlEvents:UIControlEventValueChanged];
-                [stepperView addEventHandler:^(id sender) {
-                    labelView.text = [NSString stringWithFormat:@"%d",(int)stepperView.value];
-                    
-                    sharcs_set_i(f->feature_id, stepperView.value);
-                } forControlEvents:UIControlEventValueChanged];
-                 */
             }
             
             break;
