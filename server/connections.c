@@ -404,7 +404,7 @@ void handlePacket(struct sharcs_connection *con, struct sharcs_packet *p) {
 				con->flags |= SHARCS_CF_PROFILES;
 			}
 			
-			/* enumerate modules */
+			/* enumerate profiles */
 			p2 = packet_create();
 			packet_append32(p2,0);
 			packet_append8(p2,M_S_PROFILES);
@@ -422,7 +422,7 @@ void handlePacket(struct sharcs_connection *con, struct sharcs_packet *p) {
 				}
 			}
 
-			/* update number of modules */
+			/* update number of profiles */
 			packet_seek(p2,5);
 			packet_append8(p2,i-1);
 

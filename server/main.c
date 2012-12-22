@@ -614,8 +614,8 @@ void daemonize() {
 }
 
 int main(int argc, char **argv) {
-	char path[MAXPATHLEN],c;
-	int opt_daemonize = 1;
+	char path[MAXPATHLEN];
+	int opt_daemonize = 1,c;
 	pthread_mutexattr_t attr;
 	
 	/* get current directory */

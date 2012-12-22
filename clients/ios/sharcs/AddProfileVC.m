@@ -377,7 +377,7 @@
 			case SHARCS_FEATURE_ENUM: {
 				UILabel *labelView;
 				labelView = ((UILabel*)[cell viewWithTag:TAG_VALUE]);
-				labelView.text = [NSString stringWithCString:fi->feature->feature_value.v_enum.values[fi->feature->feature_value.v_enum.value] encoding:NSASCIIStringEncoding];
+				labelView.text = [NSString stringWithCString:fi->feature->feature_value.v_enum.values[fi->value] encoding:NSASCIIStringEncoding];
 				break;
 			}
 		}
